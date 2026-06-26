@@ -18,9 +18,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - label: macOS
+          - label: macOS Apple Silicon
             os: macos-latest
-            artifact-name: shangan-library-macos
+            artifact-name: shangan-library-macos-apple-silicon
+            build-args: -- --bundles dmg
+            artifact-path: |
+              src-tauri/target/release/bundle/dmg/*.dmg
+          - label: macOS Intel
+            os: macos-15-intel
+            artifact-name: shangan-library-macos-intel
             build-args: -- --bundles dmg
             artifact-path: |
               src-tauri/target/release/bundle/dmg/*.dmg
