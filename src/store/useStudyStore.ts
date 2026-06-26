@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { clearData, loadData, saveData } from '../lib/storage'
-import { initialData } from '../data/mock'
+import { initialData } from '../data/initialData'
 import { isoForCurrentWeekDay } from '../lib/date'
 import type { AppData, Mistake, ResourceItem, Settings, Task, WeeklyPlanItem } from '../types'
 

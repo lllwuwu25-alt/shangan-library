@@ -14,6 +14,9 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
   const todayMinutes = done.filter((task) => task.day === todayDay).reduce((sum, task) => sum + task.minutes, 0)
   const completion = tasks.length ? Math.round((done.length / tasks.length) * 100) : 0
   const dayPlan = tasks.filter((task) => task.day === todayDay)
+  const countdown = daysUntil(settings.examDate)
+  const examName = settings.examName || '考试'
+  const countdownText = countdown === null ? '未设置' : `${countdown} 天`
   const subjectProgress = ['英语', '政治', '数学', '专业课'].map((subject) => {
     const subjectTasks = tasks.filter((task) => task.subject === subject)
     const doneCount = subjectTasks.filter((task) => task.status === 'done').length
@@ -33,8 +36,8 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
             </p>
           </div>
           <div className="rounded-2xl bg-white/8 p-4 ring-1 ring-white/10">
-            <p className="text-sm text-slate-300">距离 {settings.examName}</p>
-            <p className="mt-1 text-4xl font-semibold tracking-tight">{daysUntil(settings.examDate)} 天</p>
+            <p className="text-sm text-slate-300">距离 {examName}</p>
+            <p className="mt-1 text-4xl font-semibold tracking-tight">{countdownText}</p>
             <button type="button" onClick={() => go('/plan')} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-medium text-slate-950 transition hover:bg-blue-50">
               调整今日计划
               <ArrowRight size={15} />
@@ -43,7 +46,7 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
         </div>
       </section>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={<TimerReset size={18} />} label="考试倒计时" value={`${daysUntil(settings.examDate)} 天`} detail={settings.examName} />
+        <StatCard icon={<TimerReset size={18} />} label="考试倒计时" value={countdownText} detail={settings.examName || '请在设置中填写考试信息'} />
         <StatCard icon={<Clock size={18} />} label="今日学习时长" value={`${Math.floor(todayMinutes / 60)}h ${todayMinutes % 60}m`} detail={`${todayDone.length}/${todayTasks.length} 个任务完成`} tone="slate" />
         <StatCard icon={<CheckCircle2 size={18} />} label="本周完成率" value={`${completion}%`} detail="按所有计划任务计算" tone="green" />
         <StatCard icon={<Database size={18} />} label="累计资料数" value={`${resources.length} 份`} detail="含文件附件索引" tone="amber" />
@@ -97,7 +100,7 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
       <Card className="mt-5">
         <SectionTitle title={`今日科目安排 · ${isoForCurrentWeekDay(todayDay)}`} />
         <div className="grid gap-3 md:grid-cols-3">
-          {dayPlan.map((item) => (
+          {dayPlan.length === 0 ? <EmptyState text="今天还没有科目安排，可以去学习计划中添加。" /> : dayPlan.map((item) => (
             <Panel key={item.id}>
               <p className="text-xs text-slate-500">{item.slot}</p>
               <p className="mt-1 font-medium text-slate-900">{item.subject}</p>

@@ -18,6 +18,7 @@ export function Plan() {
   const tomorrowDay = dayNames[(dayNames.indexOf(todayDay) + 1) % dayNames.length]
   const todayTasks = tasks.filter((task) => task.day === todayDay)
   const tomorrowTasks = tasks.filter((task) => task.day === tomorrowDay)
+  const countdown = daysUntil(settings.examDate)
 
   const createTask = () => {
     if (!taskTitle.trim()) return
@@ -103,8 +104,8 @@ export function Plan() {
             <div className="mb-4 flex items-center gap-3 rounded-2xl bg-slate-950 p-4 text-white">
               <div className="flex size-10 items-center justify-center rounded-xl bg-white/10"><CalendarClock size={20} /></div>
               <div>
-                <p className="text-3xl font-semibold tracking-tight">{daysUntil(settings.examDate)} 天</p>
-                <p className="text-sm text-slate-300">{settings.examName} · {settings.examDate}</p>
+                <p className="text-3xl font-semibold tracking-tight">{countdown === null ? '未设置' : `${countdown} 天`}</p>
+                <p className="text-sm text-slate-300">{settings.examName || '请填写考试名称'} · {settings.examDate || '请填写考试日期'}</p>
               </div>
             </div>
             <div className="grid gap-3">

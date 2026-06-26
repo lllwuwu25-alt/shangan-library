@@ -9,8 +9,10 @@ export const addDaysIso = (days: number) => {
 }
 
 export const daysUntil = (isoDate: string) => {
+  if (!isoDate) return null
   const now = new Date()
   const target = new Date(`${isoDate}T00:00:00`)
+  if (Number.isNaN(target.getTime())) return null
   now.setHours(0, 0, 0, 0)
   return Math.max(0, Math.ceil((target.getTime() - now.getTime()) / 86400000))
 }

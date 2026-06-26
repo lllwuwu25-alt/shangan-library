@@ -69,7 +69,7 @@ export function Settings() {
             <Button className="w-full" onClick={exportJson}><Download size={16} />导出数据 JSON</Button>
             <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => importJson(event.target.files?.[0])} />
             <GhostButton className="w-full" onClick={() => fileRef.current?.click()}><Upload size={16} />导入数据 JSON</GhostButton>
-            <DangerButton className="w-full" onClick={() => { if (confirm('确认清空并恢复初始数据？')) { store.resetData(); setMessage('已恢复初始 mock 数据。') } }}><RotateCcw size={16} />清空数据</DangerButton>
+            <DangerButton className="w-full" onClick={() => { if (confirm('确认清空所有本地数据？此操作会恢复为空白初始状态。')) { store.resetData(); setMessage('已清空数据，系统已恢复为空白初始状态。') } }}><RotateCcw size={16} />清空数据</DangerButton>
             {message && <p className="rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-800">{message}</p>}
           </div>
         </Card>

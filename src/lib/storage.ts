@@ -1,4 +1,4 @@
-import { initialData } from '../data/mock'
+import { initialData } from '../data/initialData'
 import { dayNameFromIso, isoForCurrentWeekDay, todayIso } from './date'
 import type { AppData, DayName, Mistake, ResourceItem, Subject, Task, TimeSlot, WeeklyPlanItem } from '../types'
 
