@@ -15,10 +15,12 @@ type StudyStore = AppData & {
   updatePlanItem: (id: string, patch: Partial<WeeklyPlanItem>) => void
   deletePlanItem: (id: string) => void
   addResource: (item: Omit<ResourceItem, 'id' | 'addedAt'>) => void
+  addResources: (items: Array<Omit<ResourceItem, 'id' | 'addedAt'>>) => void
   updateResource: (id: string, patch: Partial<ResourceItem>) => void
   deleteResource: (id: string) => void
   openResource: (id: string) => void
   addMistake: (item: Omit<Mistake, 'id' | 'createdAt'>) => void
+  addMistakes: (items: Array<Omit<Mistake, 'id' | 'createdAt'>>) => void
   updateMistake: (id: string, patch: Partial<Mistake>) => void
   deleteMistake: (id: string) => void
   toggleMistake: (id: string) => void
@@ -68,6 +70,13 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
     persist(next)
     return next
   }),
+  addResources: (items) => set((state) => {
+    const addedAt = new Date().toISOString().slice(0, 10)
+    const nextResources = items.map((item) => ({ ...item, id: uid('res'), addedAt }))
+    const next = { ...state, resources: [...nextResources, ...state.resources] }
+    persist(next)
+    return next
+  }),
   updateResource: (id, patch) => set((state) => {
     const next = { ...state, resources: state.resources.map((item) => (item.id === id ? { ...item, ...patch } : item)) }
     persist(next)
@@ -81,6 +90,13 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
   openResource: (id) => get().updateResource(id, { lastOpenedAt: new Date().toISOString().slice(0, 10) }),
   addMistake: (item) => set((state) => {
     const next = { ...state, mistakes: [{ ...item, id: uid('mis'), createdAt: new Date().toISOString().slice(0, 10) }, ...state.mistakes] }
+    persist(next)
+    return next
+  }),
+  addMistakes: (items) => set((state) => {
+    const createdAt = new Date().toISOString().slice(0, 10)
+    const nextMistakes = items.map((item) => ({ ...item, id: uid('mis'), createdAt }))
+    const next = { ...state, mistakes: [...nextMistakes, ...state.mistakes] }
     persist(next)
     return next
   }),

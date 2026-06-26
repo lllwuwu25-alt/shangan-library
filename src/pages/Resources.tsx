@@ -1,20 +1,23 @@
-import { FileText, Paperclip, Plus, Search, Trash2, Upload } from 'lucide-react'
+import { FileStack, FileText, Paperclip, Plus, Search, Trash2, Upload } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { AttachmentList, UploadHint } from '../components/AttachmentList'
 import { resourceCategories } from '../constants'
-import { filesToAttachments, formatFileSize } from '../lib/files'
+import { fileNameWithoutExtension, filesToAttachments } from '../lib/files'
 import { useStudyStore } from '../store/useStudyStore'
 import type { FileAttachment, ResourceCategory, ResourceItem } from '../types'
 import { Button, Card, DangerButton, EmptyState, GhostButton, Pill, SectionTitle, Select, TextArea, TextInput } from '../components/ui'
 import { PageHeader } from '../components/Layout'
 
 export function Resources() {
-  const { resources, addResource, updateResource, deleteResource, openResource } = useStudyStore()
+  const { resources, addResource, addResources, updateResource, deleteResource, openResource } = useStudyStore()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<'全部' | ResourceCategory>('全部')
   const [title, setTitle] = useState('')
   const [newCategory, setNewCategory] = useState<ResourceCategory>('英语')
+  const [batchCategory, setBatchCategory] = useState<ResourceCategory>('笔记')
   const [description, setDescription] = useState('')
   const [attachments, setAttachments] = useState<FileAttachment[]>([])
+  const [batchMessage, setBatchMessage] = useState('')
 
   const filtered = useMemo(() => resources.filter((item) => {
     const hitQuery = `${item.title} ${item.description}`.toLowerCase().includes(query.toLowerCase())
@@ -48,7 +51,7 @@ export function Resources() {
                       <TextInput value={item.title} onChange={(event) => updateResource(item.id, { title: event.target.value })} className="h-8 w-full max-w-md bg-white" />
                     </div>
                     <TextArea value={item.description} onChange={(event) => updateResource(item.id, { description: event.target.value })} className="mt-3 w-full" />
-                    <ResourceAttachments item={item} updateResource={updateResource} />
+                    <ResourceAttachments item={item} updateResource={updateResource} openResource={openResource} />
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2 md:justify-end">
                     <Select value={item.category} onChange={(event) => updateResource(item.id, { category: event.target.value as ResourceCategory })}>{resourceCategories.filter((item) => item !== '全部').map((item) => <option key={item}>{item}</option>)}</Select>
@@ -76,7 +79,7 @@ export function Resources() {
               <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-blue-200 bg-blue-50 px-3 py-5 text-center text-sm font-medium text-blue-700 transition hover:bg-blue-100">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><Upload size={17} /></span>
                 <span>上传 Word / PDF / 图片等文件</span>
-                <span className="text-xs font-normal text-blue-600">支持多选，适合小文件演示</span>
+                <UploadHint>支持多选，点击文件名可直接预览 PDF / 图片 / 文本等</UploadHint>
                 <input type="file" multiple className="hidden" onChange={async (event) => {
                   if (!event.target.files) return
                   const nextFiles = await filesToAttachments(event.target.files)
@@ -84,8 +87,32 @@ export function Resources() {
                   event.target.value = ''
                 }} />
               </label>
-              <AttachmentList attachments={attachments} onRemove={(id) => setAttachments((current) => current.filter((item) => item.id !== id))} />
+              <AttachmentList attachments={attachments} compact onRemove={(id) => setAttachments((current) => current.filter((item) => item.id !== id))} />
               <Button className="w-full" onClick={() => { if (!title.trim()) return; addResource({ title, category: newCategory, description, attachments }); setTitle(''); setDescription(''); setAttachments([]) }}><Plus size={16} />新增资料</Button>
+            </div>
+          </Card>
+          <Card>
+            <SectionTitle title="批量导入" caption="一次选择多个文件，自动生成资料条目。" />
+            <div className="grid gap-3">
+              <Select value={batchCategory} onChange={(event) => setBatchCategory(event.target.value as ResourceCategory)}>{resourceCategories.filter((item) => item !== '全部').map((item) => <option key={item}>{item}</option>)}</Select>
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-sm font-medium text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><FileStack size={17} /></span>
+                <span>批量选择文件并导入</span>
+                <span className="text-xs font-normal text-slate-500">每个文件会生成一条资料，标题取文件名</span>
+                <input type="file" multiple className="hidden" onChange={async (event) => {
+                  if (!event.target.files?.length) return
+                  const nextFiles = await filesToAttachments(event.target.files)
+                  addResources(nextFiles.map((file) => ({
+                    title: fileNameWithoutExtension(file.name),
+                    category: batchCategory,
+                    description: `批量导入：${file.name}`,
+                    attachments: [file],
+                  })))
+                  setBatchMessage(`已批量导入 ${nextFiles.length} 个文件。`)
+                  event.target.value = ''
+                }} />
+              </label>
+              {batchMessage && <p className="rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-800">{batchMessage}</p>}
             </div>
           </Card>
           <Card>
@@ -105,7 +132,15 @@ export function Resources() {
   )
 }
 
-function ResourceAttachments({ item, updateResource }: { item: ResourceItem; updateResource: ReturnType<typeof useStudyStore.getState>['updateResource'] }) {
+function ResourceAttachments({
+  item,
+  updateResource,
+  openResource,
+}: {
+  item: ResourceItem
+  updateResource: ReturnType<typeof useStudyStore.getState>['updateResource']
+  openResource: ReturnType<typeof useStudyStore.getState>['openResource']
+}) {
   return (
     <div className="mt-3">
       <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
@@ -118,23 +153,11 @@ function ResourceAttachments({ item, updateResource }: { item: ResourceItem; upd
           event.target.value = ''
         }} />
       </label>
-      <AttachmentList attachments={item.attachments} onRemove={(id) => updateResource(item.id, { attachments: item.attachments.filter((file) => file.id !== id) })} />
-    </div>
-  )
-}
-
-function AttachmentList({ attachments, onRemove }: { attachments: FileAttachment[]; onRemove: (id: string) => void }) {
-  if (attachments.length === 0) return null
-  return (
-    <div className="mt-3 flex flex-wrap gap-2">
-      {attachments.map((file) => (
-        <span key={file.id} className="inline-flex max-w-full items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs text-slate-600 ring-1 ring-slate-200">
-          <Paperclip size={13} className="shrink-0 text-slate-400" />
-          <a href={file.dataUrl} download={file.name} className="truncate hover:text-blue-700">{file.name}</a>
-          <span className="text-slate-400">{formatFileSize(file.size)}</span>
-          <button type="button" onClick={() => onRemove(file.id)} className="font-semibold text-red-500" aria-label={`移除 ${file.name}`}>×</button>
-        </span>
-      ))}
+      <AttachmentList
+        attachments={item.attachments}
+        onOpen={() => openResource(item.id)}
+        onRemove={(id) => updateResource(item.id, { attachments: item.attachments.filter((file) => file.id !== id) })}
+      />
     </div>
   )
 }

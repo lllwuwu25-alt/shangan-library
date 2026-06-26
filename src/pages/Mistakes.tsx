@@ -1,14 +1,15 @@
-import { Paperclip, Plus, Search, Trash2, Upload } from 'lucide-react'
+import { FileStack, Paperclip, Plus, Search, Trash2, Upload } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { AttachmentList, UploadHint } from '../components/AttachmentList'
+import { PageHeader } from '../components/Layout'
+import { Button, Card, DangerButton, EmptyState, GhostButton, Pill, SectionTitle, Select, TextArea, TextInput } from '../components/ui'
 import { subjects } from '../constants'
-import { filesToAttachments, formatFileSize } from '../lib/files'
+import { fileNameWithoutExtension, filesToAttachments } from '../lib/files'
 import { useStudyStore } from '../store/useStudyStore'
 import type { FileAttachment, Mistake, MistakeImportance, MistakeStatus, Subject } from '../types'
-import { Button, Card, DangerButton, EmptyState, GhostButton, Pill, SectionTitle, Select, TextArea, TextInput } from '../components/ui'
-import { PageHeader } from '../components/Layout'
 
 export function Mistakes() {
-  const { mistakes, addMistake, updateMistake, deleteMistake, toggleMistake } = useStudyStore()
+  const { mistakes, addMistake, addMistakes, updateMistake, deleteMistake, toggleMistake } = useStudyStore()
   const [subject, setSubject] = useState<'全部' | Subject>('全部')
   const [status, setStatus] = useState<'全部' | MistakeStatus>('全部')
   const [query, setQuery] = useState('')
@@ -18,6 +19,9 @@ export function Mistakes() {
   const [note, setNote] = useState('')
   const [importance, setImportance] = useState<MistakeImportance>('黄')
   const [attachments, setAttachments] = useState<FileAttachment[]>([])
+  const [batchSubject, setBatchSubject] = useState<Subject>('数学')
+  const [batchImportance, setBatchImportance] = useState<MistakeImportance>('黄')
+  const [batchMessage, setBatchMessage] = useState('')
 
   const filtered = useMemo(() => mistakes.filter((item) => {
     const hitSubject = subject === '全部' || item.subject === subject
@@ -86,33 +90,67 @@ export function Mistakes() {
             ))}
           </div>
         </Card>
-        <Card>
-          <SectionTitle title="新增错题" caption="用等级标记优先复习顺序。" />
-          <div className="grid gap-3">
-            <Select value={newSubject} onChange={(event) => setNewSubject(event.target.value as Subject)}>{subjects.map((item) => <option key={item}>{item}</option>)}</Select>
-            <Select value={importance} onChange={(event) => setImportance(event.target.value as MistakeImportance)}>
-              <option>红</option>
-              <option>黄</option>
-              <option>绿</option>
-            </Select>
-            <TextArea placeholder="题目或错误点" value={question} onChange={(event) => setQuestion(event.target.value)} />
-            <TextArea placeholder="正确答案 / 思路" value={answer} onChange={(event) => setAnswer(event.target.value)} />
-            <TextInput placeholder="复盘备注" value={note} onChange={(event) => setNote(event.target.value)} />
-            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-blue-200 bg-blue-50 px-3 py-5 text-center text-sm font-medium text-blue-700 transition hover:bg-blue-100">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><Upload size={17} /></span>
-              <span>上传题目截图 / PDF / Word 等文件</span>
-              <span className="text-xs font-normal text-blue-600">附件只保存在本机浏览器</span>
-              <input type="file" multiple className="hidden" onChange={async (event) => {
-                if (!event.target.files) return
-                const nextFiles = await filesToAttachments(event.target.files)
-                setAttachments((current) => [...current, ...nextFiles])
-                event.target.value = ''
-              }} />
-            </label>
-            <AttachmentList attachments={attachments} onRemove={(id) => setAttachments((current) => current.filter((item) => item.id !== id))} />
-            <Button className="w-full" onClick={() => { if (!question.trim()) return; addMistake({ subject: newSubject, question, answer, note, status: '待复习', importance, attachments }); setQuestion(''); setAnswer(''); setNote(''); setAttachments([]); setImportance('黄') }}><Plus size={16} />新增错题</Button>
-          </div>
-        </Card>
+        <div className="space-y-5">
+          <Card>
+            <SectionTitle title="新增错题" caption="用等级标记优先复习顺序。" />
+            <div className="grid gap-3">
+              <Select value={newSubject} onChange={(event) => setNewSubject(event.target.value as Subject)}>{subjects.map((item) => <option key={item}>{item}</option>)}</Select>
+              <Select value={importance} onChange={(event) => setImportance(event.target.value as MistakeImportance)}>
+                <option>红</option>
+                <option>黄</option>
+                <option>绿</option>
+              </Select>
+              <TextArea placeholder="题目或错误点" value={question} onChange={(event) => setQuestion(event.target.value)} />
+              <TextArea placeholder="正确答案 / 思路" value={answer} onChange={(event) => setAnswer(event.target.value)} />
+              <TextInput placeholder="复盘备注" value={note} onChange={(event) => setNote(event.target.value)} />
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-blue-200 bg-blue-50 px-3 py-5 text-center text-sm font-medium text-blue-700 transition hover:bg-blue-100">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><Upload size={17} /></span>
+                <span>上传题目截图 / PDF / Word 等文件</span>
+                <UploadHint>点击附件名可预览 PDF / 图片 / 文本等</UploadHint>
+                <input type="file" multiple className="hidden" onChange={async (event) => {
+                  if (!event.target.files) return
+                  const nextFiles = await filesToAttachments(event.target.files)
+                  setAttachments((current) => [...current, ...nextFiles])
+                  event.target.value = ''
+                }} />
+              </label>
+              <AttachmentList attachments={attachments} compact onRemove={(id) => setAttachments((current) => current.filter((item) => item.id !== id))} />
+              <Button className="w-full" onClick={() => { if (!question.trim()) return; addMistake({ subject: newSubject, question, answer, note, status: '待复习', importance, attachments }); setQuestion(''); setAnswer(''); setNote(''); setAttachments([]); setImportance('黄') }}><Plus size={16} />新增错题</Button>
+            </div>
+          </Card>
+          <Card>
+            <SectionTitle title="批量导入错题" caption="适合一次导入截图、PDF 或 Word 题单。" />
+            <div className="grid gap-3">
+              <Select value={batchSubject} onChange={(event) => setBatchSubject(event.target.value as Subject)}>{subjects.map((item) => <option key={item}>{item}</option>)}</Select>
+              <Select value={batchImportance} onChange={(event) => setBatchImportance(event.target.value as MistakeImportance)}>
+                <option>红</option>
+                <option>黄</option>
+                <option>绿</option>
+              </Select>
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-sm font-medium text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700">
+                <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><FileStack size={17} /></span>
+                <span>批量选择错题文件</span>
+                <span className="text-xs font-normal text-slate-500">每个文件会生成一条待复习错题</span>
+                <input type="file" multiple className="hidden" onChange={async (event) => {
+                  if (!event.target.files?.length) return
+                  const nextFiles = await filesToAttachments(event.target.files)
+                  addMistakes(nextFiles.map((file) => ({
+                    subject: batchSubject,
+                    question: fileNameWithoutExtension(file.name),
+                    answer: '',
+                    note: `批量导入：${file.name}`,
+                    status: '待复习',
+                    importance: batchImportance,
+                    attachments: [file],
+                  })))
+                  setBatchMessage(`已批量导入 ${nextFiles.length} 条错题。`)
+                  event.target.value = ''
+                }} />
+              </label>
+              {batchMessage && <p className="rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-800">{batchMessage}</p>}
+            </div>
+          </Card>
+        </div>
       </div>
     </>
   )
@@ -141,22 +179,6 @@ function MistakeAttachments({ item, updateMistake }: { item: Mistake; updateMist
         }} />
       </label>
       <AttachmentList attachments={item.attachments} onRemove={(id) => updateMistake(item.id, { attachments: item.attachments.filter((file) => file.id !== id) })} />
-    </div>
-  )
-}
-
-function AttachmentList({ attachments, onRemove }: { attachments: FileAttachment[]; onRemove: (id: string) => void }) {
-  if (attachments.length === 0) return null
-  return (
-    <div className="mt-3 flex flex-wrap gap-2">
-      {attachments.map((file) => (
-        <span key={file.id} className="inline-flex max-w-full items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs text-slate-600 ring-1 ring-slate-200">
-          <Paperclip size={13} className="shrink-0 text-slate-400" />
-          <a href={file.dataUrl} download={file.name} className="truncate hover:text-blue-700">{file.name}</a>
-          <span className="text-slate-400">{formatFileSize(file.size)}</span>
-          <button type="button" onClick={() => onRemove(file.id)} className="font-semibold text-red-500" aria-label={`移除 ${file.name}`}>×</button>
-        </span>
-      ))}
     </div>
   )
 }
