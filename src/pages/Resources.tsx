@@ -1,8 +1,8 @@
-import { FileStack, FileText, Paperclip, Plus, Search, Trash2, Upload } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Download, FileStack, FileText, Paperclip, Plus, Search, Trash2, Upload, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { AttachmentList, UploadHint } from '../components/AttachmentList'
 import { resourceCategories } from '../constants'
-import { fileNameWithoutExtension, filesToAttachments } from '../lib/files'
+import { dataUrlToArrayBuffer, fileNameWithoutExtension, filesToAttachments, formatFileSize, isDocxFile, isLegacyWordFile } from '../lib/files'
 import { useStudyStore } from '../store/useStudyStore'
 import type { FileAttachment, ResourceCategory, ResourceItem } from '../types'
 import { Button, Card, DangerButton, EmptyState, GhostButton, Pill, SectionTitle, Select, TextArea, TextInput } from '../components/ui'
@@ -18,6 +18,7 @@ export function Resources() {
   const [description, setDescription] = useState('')
   const [attachments, setAttachments] = useState<FileAttachment[]>([])
   const [batchMessage, setBatchMessage] = useState('')
+  const [previewFile, setPreviewFile] = useState<FileAttachment | null>(null)
 
   const filtered = useMemo(() => resources.filter((item) => {
     const hitQuery = `${item.title} ${item.description}`.toLowerCase().includes(query.toLowerCase())
@@ -51,7 +52,7 @@ export function Resources() {
                       <TextInput value={item.title} onChange={(event) => updateResource(item.id, { title: event.target.value })} className="h-8 w-full max-w-md bg-white" />
                     </div>
                     <TextArea value={item.description} onChange={(event) => updateResource(item.id, { description: event.target.value })} className="mt-3 w-full" />
-                    <ResourceAttachments item={item} updateResource={updateResource} openResource={openResource} />
+                    <ResourceAttachments item={item} updateResource={updateResource} openResource={openResource} setPreviewFile={setPreviewFile} />
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2 md:justify-end">
                     <Select value={item.category} onChange={(event) => updateResource(item.id, { category: event.target.value as ResourceCategory })}>{resourceCategories.filter((item) => item !== '全部').map((item) => <option key={item}>{item}</option>)}</Select>
@@ -87,7 +88,7 @@ export function Resources() {
                   event.target.value = ''
                 }} />
               </label>
-              <AttachmentList attachments={attachments} compact onRemove={(id) => setAttachments((current) => current.filter((item) => item.id !== id))} />
+              <AttachmentList attachments={attachments} compact onOpen={setPreviewFile} onRemove={(id) => setAttachments((current) => current.filter((item) => item.id !== id))} />
               <Button className="w-full" onClick={() => { if (!title.trim()) return; addResource({ title, category: newCategory, description, attachments }); setTitle(''); setDescription(''); setAttachments([]) }}><Plus size={16} />新增资料</Button>
             </div>
           </Card>
@@ -128,6 +129,7 @@ export function Resources() {
           </Card>
         </div>
       </div>
+      {previewFile && <ResourcePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />}
     </>
   )
 }
@@ -136,10 +138,12 @@ function ResourceAttachments({
   item,
   updateResource,
   openResource,
+  setPreviewFile,
 }: {
   item: ResourceItem
   updateResource: ReturnType<typeof useStudyStore.getState>['updateResource']
   openResource: ReturnType<typeof useStudyStore.getState>['openResource']
+  setPreviewFile: (file: FileAttachment) => void
 }) {
   return (
     <div className="mt-3">
@@ -155,9 +159,126 @@ function ResourceAttachments({
       </label>
       <AttachmentList
         attachments={item.attachments}
-        onOpen={() => openResource(item.id)}
+        onOpen={(file) => {
+          openResource(item.id)
+          setPreviewFile(file)
+        }}
         onRemove={(id) => updateResource(item.id, { attachments: item.attachments.filter((file) => file.id !== id) })}
       />
+    </div>
+  )
+}
+
+function ResourcePreviewModal({ file, onClose }: { file: FileAttachment; onClose: () => void }) {
+  const [docxHtml, setDocxHtml] = useState('')
+  const [docxError, setDocxError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+
+    const renderDocx = async () => {
+      if (!isDocxFile(file)) {
+        setDocxHtml('')
+        setDocxError('')
+        return
+      }
+
+      setDocxHtml('')
+      setDocxError('')
+      try {
+        const mammoth = await import('mammoth/mammoth.browser')
+        const arrayBuffer = await dataUrlToArrayBuffer(file.dataUrl)
+        const result = await mammoth.convertToHtml({ arrayBuffer })
+        if (!cancelled) setDocxHtml(result.value)
+      } catch {
+        if (!cancelled) setDocxError('Word 文件解析失败，请下载后用本机 Word / WPS 打开。')
+      }
+    }
+
+    void renderDocx()
+    return () => {
+      cancelled = true
+    }
+  }, [file])
+
+  const body = (() => {
+    if (file.type.startsWith('image/')) {
+      return <img src={file.dataUrl} alt={file.name} className="max-h-full max-w-full object-contain" />
+    }
+
+    if (file.type === 'application/pdf') {
+      return <iframe src={file.dataUrl} title={file.name} className="h-full w-full rounded-xl bg-white" />
+    }
+
+    if (file.type.startsWith('text/')) {
+      return <iframe src={file.dataUrl} title={file.name} className="h-full w-full rounded-xl bg-white" />
+    }
+
+    if (file.type.startsWith('video/')) {
+      return <video src={file.dataUrl} controls className="max-h-full max-w-full rounded-xl bg-black" />
+    }
+
+    if (file.type.startsWith('audio/')) {
+      return (
+        <div className="grid h-full place-items-center">
+          <audio src={file.dataUrl} controls className="w-full max-w-xl" />
+        </div>
+      )
+    }
+
+    if (isDocxFile(file)) {
+      if (docxError) return <UnsupportedPreview file={file} message={docxError} />
+      if (!docxHtml) return <div className="grid h-full place-items-center text-sm text-slate-500">正在解析 Word 文档...</div>
+      return <article className="preview-docx mx-auto max-w-3xl rounded-xl bg-white p-8 text-slate-900 shadow-sm" dangerouslySetInnerHTML={{ __html: docxHtml }} />
+    }
+
+    if (isLegacyWordFile(file)) {
+      return <UnsupportedPreview file={file} message=".doc 老格式暂不支持浏览器内预览，请下载后用 Word / WPS 打开。" />
+    }
+
+    return <UnsupportedPreview file={file} message="当前文件类型暂不支持内置预览，请下载后用本机应用打开。" />
+  })()
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
+      <div className="flex h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">
+        <div className="flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 px-5">
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-semibold text-slate-950">{file.name}</h2>
+            <p className="mt-0.5 text-xs text-slate-500">{file.type || '未知类型'} · {formatFileSize(file.size)}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <a href={file.dataUrl} download={file.name} className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+              <Download size={15} />
+              下载
+            </a>
+            <button type="button" onClick={onClose} className="flex size-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" aria-label="关闭预览">
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 overflow-auto bg-slate-100 p-4">
+          <div className="flex h-full min-h-[520px] items-center justify-center">
+            {body}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function UnsupportedPreview({ file, message }: { file: FileAttachment; message: string }) {
+  return (
+    <div className="max-w-md rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200">
+      <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+        <FileText size={22} />
+      </div>
+      <h3 className="mt-4 text-base font-semibold text-slate-950">{file.name}</h3>
+      <p className="mt-2 text-sm leading-6 text-slate-500">{message}</p>
+      <a href={file.dataUrl} download={file.name} className="mt-4 inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700">
+        <Download size={15} />
+        下载文件
+      </a>
     </div>
   )
 }

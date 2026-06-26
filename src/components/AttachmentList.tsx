@@ -1,6 +1,6 @@
 import { Download, Eye, FileText, Paperclip, X } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { formatFileSize, isPreviewableFile, openAttachment } from '../lib/files'
+import { formatFileSize, isDocxFile, isPreviewableFile } from '../lib/files'
 import type { FileAttachment } from '../types'
 
 type AttachmentListProps = {
@@ -16,7 +16,7 @@ export function AttachmentList({ attachments, onRemove, onOpen, compact = false 
   return (
     <div className={compact ? 'mt-3 flex flex-wrap gap-2' : 'mt-3 grid gap-2'}>
       {attachments.map((file) => {
-        const previewable = isPreviewableFile(file)
+        const previewable = isPreviewableFile(file) || isDocxFile(file)
 
         return (
           <div
@@ -28,10 +28,8 @@ export function AttachmentList({ attachments, onRemove, onOpen, compact = false 
             </span>
             <button
               type="button"
-              onClick={() => {
-                onOpen?.(file)
-                openAttachment(file)
-              }}
+              onClick={() => onOpen?.(file)}
+              disabled={!onOpen}
               className="min-w-0 flex-1 text-left"
               title={previewable ? '预览文件' : '打开文件'}
             >

@@ -44,6 +44,51 @@ textarea {
   color: oklch(0.28 0.1 252);
 }
 
+.preview-docx {
+  line-height: 1.8;
+}
+
+.preview-docx h1,
+.preview-docx h2,
+.preview-docx h3 {
+  margin: 1.2em 0 0.6em;
+  font-weight: 700;
+}
+
+.preview-docx h1 {
+  font-size: 1.6rem;
+}
+
+.preview-docx h2 {
+  font-size: 1.3rem;
+}
+
+.preview-docx h3 {
+  font-size: 1.1rem;
+}
+
+.preview-docx p {
+  margin: 0.65em 0;
+}
+
+.preview-docx table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.preview-docx td,
+.preview-docx th {
+  border: 1px solid oklch(0.9 0.015 255);
+  padding: 0.5rem;
+  vertical-align: top;
+}
+
+.preview-docx img {
+  max-width: 100%;
+  height: auto;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

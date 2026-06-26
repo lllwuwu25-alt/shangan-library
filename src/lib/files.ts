@@ -12,6 +12,21 @@ export const fileNameWithoutExtension = (name: string) => name.replace(/\.[^/.]+
 
 export const isPreviewableFile = (file: FileAttachment) => previewableTypes.some((type) => file.type.startsWith(type))
 
+export const isDocxFile = (file: FileAttachment) => {
+  const lowerName = file.name.toLowerCase()
+  return file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || lowerName.endsWith('.docx')
+}
+
+export const isLegacyWordFile = (file: FileAttachment) => {
+  const lowerName = file.name.toLowerCase()
+  return file.type === 'application/msword' || lowerName.endsWith('.doc')
+}
+
+export const dataUrlToArrayBuffer = async (dataUrl: string) => {
+  const response = await fetch(dataUrl)
+  return response.arrayBuffer()
+}
+
 export const openAttachment = (file: FileAttachment) => {
   const win = window.open('', '_blank', 'noopener,noreferrer')
   if (!win) return false
