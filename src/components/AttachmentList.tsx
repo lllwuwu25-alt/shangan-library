@@ -1,6 +1,6 @@
 import { Download, Eye, FileText, Paperclip, X } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { formatFileSize, isDocxFile, isPreviewableFile } from '../lib/files'
+import { formatFileSize, isDocxFile, isExcelFile, isPreviewableFile } from '../lib/files'
 import type { FileAttachment } from '../types'
 
 type AttachmentListProps = {
@@ -16,7 +16,7 @@ export function AttachmentList({ attachments, onRemove, onOpen, compact = false 
   return (
     <div className={compact ? 'mt-3 flex flex-wrap gap-2' : 'mt-3 grid gap-2'}>
       {attachments.map((file) => {
-        const previewable = isPreviewableFile(file) || isDocxFile(file)
+        const previewable = isPreviewableFile(file) || isDocxFile(file) || isExcelFile(file)
 
         return (
           <div

@@ -22,6 +22,15 @@ export const isLegacyWordFile = (file: FileAttachment) => {
   return file.type === 'application/msword' || lowerName.endsWith('.doc')
 }
 
+export const isExcelFile = (file: FileAttachment) => {
+  const lowerName = file.name.toLowerCase()
+  return [
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel',
+    'text/csv',
+  ].includes(file.type) || lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls') || lowerName.endsWith('.csv')
+}
+
 export const dataUrlToArrayBuffer = async (dataUrl: string) => {
   const response = await fetch(dataUrl)
   return response.arrayBuffer()

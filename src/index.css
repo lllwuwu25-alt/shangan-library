@@ -46,6 +46,7 @@ textarea {
 
 .preview-docx {
   line-height: 1.8;
+  overflow-wrap: anywhere;
 }
 
 .preview-docx h1,
@@ -72,7 +73,10 @@ textarea {
 }
 
 .preview-docx table {
+  display: block;
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
   border-collapse: collapse;
   margin: 1rem 0;
 }

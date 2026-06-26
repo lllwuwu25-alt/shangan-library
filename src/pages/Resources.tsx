@@ -1,8 +1,9 @@
-import { Download, FileStack, FileText, Paperclip, Plus, Search, Trash2, Upload, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { FileStack, FileText, Paperclip, Plus, Search, Trash2, Upload } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { AttachmentList, UploadHint } from '../components/AttachmentList'
+import { FilePreviewModal } from '../components/FilePreviewModal'
 import { resourceCategories } from '../constants'
-import { dataUrlToArrayBuffer, fileNameWithoutExtension, filesToAttachments, formatFileSize, isDocxFile, isLegacyWordFile } from '../lib/files'
+import { fileNameWithoutExtension, filesToAttachments } from '../lib/files'
 import { useStudyStore } from '../store/useStudyStore'
 import type { FileAttachment, ResourceCategory, ResourceItem } from '../types'
 import { Button, Card, DangerButton, EmptyState, GhostButton, Pill, SectionTitle, Select, TextArea, TextInput } from '../components/ui'
@@ -79,8 +80,8 @@ export function Resources() {
               <TextArea placeholder="简短描述或本地路径备注" value={description} onChange={(event) => setDescription(event.target.value)} />
               <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-blue-200 bg-blue-50 px-3 py-5 text-center text-sm font-medium text-blue-700 transition hover:bg-blue-100">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><Upload size={17} /></span>
-                <span>上传 Word / PDF / 图片等文件</span>
-                <UploadHint>支持多选，点击文件名可直接预览 PDF / 图片 / 文本等</UploadHint>
+                <span>上传 Word / Excel / PDF / 图片等文件</span>
+                <UploadHint>支持多选，点击文件名可直接预览 Word / Excel / PDF / 图片</UploadHint>
                 <input type="file" multiple className="hidden" onChange={async (event) => {
                   if (!event.target.files) return
                   const nextFiles = await filesToAttachments(event.target.files)
@@ -129,7 +130,7 @@ export function Resources() {
           </Card>
         </div>
       </div>
-      {previewFile && <ResourcePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />}
+      {previewFile && <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />}
     </>
   )
 }
@@ -165,120 +166,6 @@ function ResourceAttachments({
         }}
         onRemove={(id) => updateResource(item.id, { attachments: item.attachments.filter((file) => file.id !== id) })}
       />
-    </div>
-  )
-}
-
-function ResourcePreviewModal({ file, onClose }: { file: FileAttachment; onClose: () => void }) {
-  const [docxHtml, setDocxHtml] = useState('')
-  const [docxError, setDocxError] = useState('')
-
-  useEffect(() => {
-    let cancelled = false
-
-    const renderDocx = async () => {
-      if (!isDocxFile(file)) {
-        setDocxHtml('')
-        setDocxError('')
-        return
-      }
-
-      setDocxHtml('')
-      setDocxError('')
-      try {
-        const mammoth = await import('mammoth/mammoth.browser')
-        const arrayBuffer = await dataUrlToArrayBuffer(file.dataUrl)
-        const result = await mammoth.convertToHtml({ arrayBuffer })
-        if (!cancelled) setDocxHtml(result.value)
-      } catch {
-        if (!cancelled) setDocxError('Word 文件解析失败，请下载后用本机 Word / WPS 打开。')
-      }
-    }
-
-    void renderDocx()
-    return () => {
-      cancelled = true
-    }
-  }, [file])
-
-  const body = (() => {
-    if (file.type.startsWith('image/')) {
-      return <img src={file.dataUrl} alt={file.name} className="max-h-full max-w-full object-contain" />
-    }
-
-    if (file.type === 'application/pdf') {
-      return <iframe src={file.dataUrl} title={file.name} className="h-full w-full rounded-xl bg-white" />
-    }
-
-    if (file.type.startsWith('text/')) {
-      return <iframe src={file.dataUrl} title={file.name} className="h-full w-full rounded-xl bg-white" />
-    }
-
-    if (file.type.startsWith('video/')) {
-      return <video src={file.dataUrl} controls className="max-h-full max-w-full rounded-xl bg-black" />
-    }
-
-    if (file.type.startsWith('audio/')) {
-      return (
-        <div className="grid h-full place-items-center">
-          <audio src={file.dataUrl} controls className="w-full max-w-xl" />
-        </div>
-      )
-    }
-
-    if (isDocxFile(file)) {
-      if (docxError) return <UnsupportedPreview file={file} message={docxError} />
-      if (!docxHtml) return <div className="grid h-full place-items-center text-sm text-slate-500">正在解析 Word 文档...</div>
-      return <article className="preview-docx mx-auto max-w-3xl rounded-xl bg-white p-8 text-slate-900 shadow-sm" dangerouslySetInnerHTML={{ __html: docxHtml }} />
-    }
-
-    if (isLegacyWordFile(file)) {
-      return <UnsupportedPreview file={file} message=".doc 老格式暂不支持浏览器内预览，请下载后用 Word / WPS 打开。" />
-    }
-
-    return <UnsupportedPreview file={file} message="当前文件类型暂不支持内置预览，请下载后用本机应用打开。" />
-  })()
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
-      <div className="flex h-[88vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">
-        <div className="flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 px-5">
-          <div className="min-w-0">
-            <h2 className="truncate text-base font-semibold text-slate-950">{file.name}</h2>
-            <p className="mt-0.5 text-xs text-slate-500">{file.type || '未知类型'} · {formatFileSize(file.size)}</p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <a href={file.dataUrl} download={file.name} className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
-              <Download size={15} />
-              下载
-            </a>
-            <button type="button" onClick={onClose} className="flex size-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" aria-label="关闭预览">
-              <X size={18} />
-            </button>
-          </div>
-        </div>
-        <div className="min-h-0 flex-1 overflow-auto bg-slate-100 p-4">
-          <div className="flex h-full min-h-[520px] items-center justify-center">
-            {body}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function UnsupportedPreview({ file, message }: { file: FileAttachment; message: string }) {
-  return (
-    <div className="max-w-md rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-slate-200">
-      <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
-        <FileText size={22} />
-      </div>
-      <h3 className="mt-4 text-base font-semibold text-slate-950">{file.name}</h3>
-      <p className="mt-2 text-sm leading-6 text-slate-500">{message}</p>
-      <a href={file.dataUrl} download={file.name} className="mt-4 inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700">
-        <Download size={15} />
-        下载文件
-      </a>
     </div>
   )
 }

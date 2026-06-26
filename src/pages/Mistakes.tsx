@@ -1,6 +1,7 @@
 import { FileStack, Paperclip, Plus, Search, Trash2, Upload } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { AttachmentList, UploadHint } from '../components/AttachmentList'
+import { FilePreviewModal } from '../components/FilePreviewModal'
 import { PageHeader } from '../components/Layout'
 import { Button, Card, DangerButton, EmptyState, GhostButton, Pill, SectionTitle, Select, TextArea, TextInput } from '../components/ui'
 import { subjects } from '../constants'
@@ -22,6 +23,7 @@ export function Mistakes() {
   const [batchSubject, setBatchSubject] = useState<Subject>('数学')
   const [batchImportance, setBatchImportance] = useState<MistakeImportance>('黄')
   const [batchMessage, setBatchMessage] = useState('')
+  const [previewFile, setPreviewFile] = useState<FileAttachment | null>(null)
 
   const filtered = useMemo(() => mistakes.filter((item) => {
     const hitSubject = subject === '全部' || item.subject === subject
@@ -81,7 +83,7 @@ export function Mistakes() {
                   <TextArea value={item.answer} onChange={(event) => updateMistake(item.id, { answer: event.target.value })} />
                   <TextInput value={item.note} onChange={(event) => updateMistake(item.id, { note: event.target.value })} />
                 </div>
-                <MistakeAttachments item={item} updateMistake={updateMistake} />
+                <MistakeAttachments item={item} updateMistake={updateMistake} setPreviewFile={setPreviewFile} />
                 <div className="mt-3 flex flex-wrap gap-2">
                   <GhostButton onClick={() => toggleMistake(item.id)}>{item.status === '已掌握' ? '设为待复习' : '标记已掌握'}</GhostButton>
                   <DangerButton onClick={() => deleteMistake(item.id)}><Trash2 size={15} />删除</DangerButton>
@@ -105,8 +107,8 @@ export function Mistakes() {
               <TextInput placeholder="复盘备注" value={note} onChange={(event) => setNote(event.target.value)} />
               <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-blue-200 bg-blue-50 px-3 py-5 text-center text-sm font-medium text-blue-700 transition hover:bg-blue-100">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><Upload size={17} /></span>
-                <span>上传题目截图 / PDF / Word 等文件</span>
-                <UploadHint>点击附件名可预览 PDF / 图片 / 文本等</UploadHint>
+                <span>上传题目截图 / PDF / Word / Excel 等文件</span>
+                <UploadHint>点击附件名可预览 Word / Excel / PDF / 图片</UploadHint>
                 <input type="file" multiple className="hidden" onChange={async (event) => {
                   if (!event.target.files) return
                   const nextFiles = await filesToAttachments(event.target.files)
@@ -114,7 +116,7 @@ export function Mistakes() {
                   event.target.value = ''
                 }} />
               </label>
-              <AttachmentList attachments={attachments} compact onRemove={(id) => setAttachments((current) => current.filter((item) => item.id !== id))} />
+              <AttachmentList attachments={attachments} compact onOpen={setPreviewFile} onRemove={(id) => setAttachments((current) => current.filter((item) => item.id !== id))} />
               <Button className="w-full" onClick={() => { if (!question.trim()) return; addMistake({ subject: newSubject, question, answer, note, status: '待复习', importance, attachments }); setQuestion(''); setAnswer(''); setNote(''); setAttachments([]); setImportance('黄') }}><Plus size={16} />新增错题</Button>
             </div>
           </Card>
@@ -152,6 +154,7 @@ export function Mistakes() {
           </Card>
         </div>
       </div>
+      {previewFile && <FilePreviewModal file={previewFile} onClose={() => setPreviewFile(null)} />}
     </>
   )
 }
@@ -165,7 +168,15 @@ function ImportancePill({ importance }: { importance: MistakeImportance }) {
   return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${styles[importance]}`}>{importance}色等级</span>
 }
 
-function MistakeAttachments({ item, updateMistake }: { item: Mistake; updateMistake: ReturnType<typeof useStudyStore.getState>['updateMistake'] }) {
+function MistakeAttachments({
+  item,
+  updateMistake,
+  setPreviewFile,
+}: {
+  item: Mistake
+  updateMistake: ReturnType<typeof useStudyStore.getState>['updateMistake']
+  setPreviewFile: (file: FileAttachment) => void
+}) {
   return (
     <div className="mt-3">
       <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
@@ -178,7 +189,11 @@ function MistakeAttachments({ item, updateMistake }: { item: Mistake; updateMist
           event.target.value = ''
         }} />
       </label>
-      <AttachmentList attachments={item.attachments} onRemove={(id) => updateMistake(item.id, { attachments: item.attachments.filter((file) => file.id !== id) })} />
+      <AttachmentList
+        attachments={item.attachments}
+        onOpen={setPreviewFile}
+        onRemove={(id) => updateMistake(item.id, { attachments: item.attachments.filter((file) => file.id !== id) })}
+      />
     </div>
   )
 }
