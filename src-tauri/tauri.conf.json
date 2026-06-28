@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "上岸资料库",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "identifier": "com.shangan.library",
   "build": {
     "frontendDist": "../dist",
@@ -36,6 +36,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "macOS": {
+      "signingIdentity": "-"
+    },
     "android": {
       "debugApplicationIdSuffix": ".debug"
     }
