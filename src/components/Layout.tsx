@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, Home, Library, Settings, ShieldCheck, TriangleAlert } from 'lucide-react'
+import { BookOpen, CalendarDays, Home, Library, MessageCircle, Settings, ShieldCheck, TriangleAlert } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 const navItems = [
@@ -7,6 +7,7 @@ const navItems = [
   { path: '/resources', label: '资料库', icon: Library },
   { path: '/mistakes', label: '错题本', icon: TriangleAlert },
   { path: '/settings', label: '设置', icon: Settings },
+  { path: '/contact', label: '联系我们', icon: MessageCircle },
 ]
 
 export function Layout({ path, onNavigate, children }: { path: string; onNavigate: (path: string) => void; children: ReactNode }) {

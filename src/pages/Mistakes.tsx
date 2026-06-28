@@ -45,10 +45,10 @@ export function Mistakes() {
         <Stat label="黄色巩固" value={mistakes.filter((item) => item.importance === '黄').length} />
         <Stat label="绿色普通" value={mistakes.filter((item) => item.importance === '绿').length} />
       </div>
-      <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_360px]">
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card>
           <SectionTitle title="错题列表" caption={`${filtered.length} / ${mistakes.length} 条错题`} />
-          <div className="mb-4 grid gap-3 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200/70 md:grid-cols-[1fr_160px_160px]">
+          <div className="mb-4 grid gap-3 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200/70 md:grid-cols-[minmax(0,1fr)_160px_160px]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
               <TextInput value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索错题、答案或备注" className="w-full pl-9" />

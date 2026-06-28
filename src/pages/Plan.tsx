@@ -1,6 +1,6 @@
 import { CalendarClock, CheckCircle2, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { dayNames, subjects, timeSlots } from '../constants'
+import { dayNames, defaultTimeSlots, subjects } from '../constants'
 import { currentDayName, daysUntil, isoForCurrentWeekDay } from '../lib/date'
 import { useStudyStore } from '../store/useStudyStore'
 import type { DayName, Subject, Task, TimeSlot } from '../types'
@@ -14,7 +14,9 @@ export function Plan() {
   const [taskDay, setTaskDay] = useState<DayName>(currentDayName())
   const [taskSlot, setTaskSlot] = useState<TimeSlot>('上午')
   const [taskMinutes, setTaskMinutes] = useState(60)
+  const [newSlot, setNewSlot] = useState('')
   const todayDay = currentDayName()
+  const timeSlots = settings.timeSlots.length ? settings.timeSlots : defaultTimeSlots
   const tomorrowDay = dayNames[(dayNames.indexOf(todayDay) + 1) % dayNames.length]
   const todayTasks = tasks.filter((task) => task.day === todayDay)
   const tomorrowTasks = tasks.filter((task) => task.day === tomorrowDay)
@@ -33,51 +35,62 @@ export function Plan() {
     setTaskTitle('')
   }
 
+  const addTimeSlot = () => {
+    const slot = newSlot.trim()
+    if (!slot || timeSlots.includes(slot)) return
+    updateSettings({ timeSlots: [...timeSlots, slot] })
+    setTaskSlot(slot)
+    setNewSlot('')
+  }
+
+  const removeTimeSlot = (slot: TimeSlot) => {
+    if (tasks.some((task) => task.slot === slot)) return
+    const nextSlots = timeSlots.filter((item) => item !== slot)
+    updateSettings({ timeSlots: nextSlots.length ? nextSlots : defaultTimeSlots })
+    if (taskSlot === slot) setTaskSlot(nextSlots[0] ?? defaultTimeSlots[0])
+  }
+
   return (
     <>
       <PageHeader title="学习计划" description="任务就是周计划表的内容。新增任务后会进入对应星期和时段，首页今日任务按当天星期同步。" />
-      <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="p-4 sm:p-5">
           <SectionTitle title="本周学习计划表" caption="单元格内任务会同步到首页今日任务。" />
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1180px] table-fixed border-separate border-spacing-0 text-sm">
-              <thead>
-                <tr>
-                  <th className="w-20 pb-3 text-left font-medium text-slate-500">时段</th>
-                  {dayNames.map((day) => (
-                    <th key={day} className={`w-40 pb-3 text-left font-medium ${day === todayDay ? 'text-blue-700' : 'text-slate-500'}`}>
-                      <span className="inline-flex items-center gap-2">
-                        {day}
-                        {day === todayDay && <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-medium text-white">今天</span>}
-                      </span>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {timeSlots.map((slot) => (
-                  <tr key={slot}>
-                    <td className="border-t border-slate-100 py-3 pr-3 align-top">
-                      <div className="sticky left-0 rounded-xl bg-white px-2 py-2 font-medium text-slate-700">{slot}</div>
-                    </td>
-                    {dayNames.map((day) => {
-                      const cellTasks = tasks.filter((task) => task.day === day && task.slot === slot)
+          <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+            {dayNames.map((day) => {
+              const dayTasks = tasks.filter((task) => task.day === day)
+              return (
+                <div key={day} className={`rounded-2xl p-3 ring-1 ${day === todayDay ? 'bg-blue-50/80 ring-blue-100' : 'bg-slate-50 ring-slate-200/70'}`}>
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className={`text-sm font-semibold ${day === todayDay ? 'text-blue-800' : 'text-slate-900'}`}>{day}</p>
+                        {day === todayDay && <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-medium text-white">今天</span>}
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">{isoForCurrentWeekDay(day)} · {dayTasks.length} 个任务</p>
+                    </div>
+                  </div>
+                  <div className="grid gap-3">
+                    {timeSlots.map((slot) => {
+                      const cellTasks = dayTasks.filter((task) => task.slot === slot)
                       return (
-                        <td key={`${day}-${slot}`} className="border-t border-slate-100 py-3 pr-3 align-top">
-                          <div className={`min-h-32 rounded-2xl p-2 ${day === todayDay ? 'bg-blue-50/80 ring-1 ring-blue-100' : 'bg-slate-50 ring-1 ring-slate-200/50'}`}>
-                            {cellTasks.length === 0 ? (
-                              <p className="px-2 py-8 text-center text-xs text-slate-400">暂无任务</p>
-                            ) : cellTasks.map((task) => (
-                              <PlanTaskCard key={task.id} task={task} updateTask={updateTask} deleteTask={deleteTask} toggleTask={toggleTask} />
-                            ))}
+                        <div key={`${day}-${slot}`} className="rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/70">
+                          <div className="mb-2 flex items-center justify-between gap-2">
+                            <p className="text-xs font-medium text-slate-500">{slot}</p>
+                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">{cellTasks.length}</span>
                           </div>
-                        </td>
+                          {cellTasks.length === 0 ? (
+                            <p className="rounded-lg bg-slate-50 px-3 py-3 text-center text-xs text-slate-400">暂无任务</p>
+                          ) : cellTasks.map((task) => (
+                            <PlanTaskCard key={task.id} task={task} updateTask={updateTask} deleteTask={deleteTask} toggleTask={toggleTask} />
+                          ))}
+                        </div>
                       )
                     })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </Card>
         <div className="space-y-5">
@@ -111,6 +124,37 @@ export function Plan() {
             <div className="grid gap-3">
               <TextInput value={settings.examName} onChange={(event) => updateSettings({ examName: event.target.value })} placeholder="考试名称" />
               <TextInput type="date" value={settings.examDate} onChange={(event) => updateSettings({ examDate: event.target.value })} />
+            </div>
+          </Card>
+          <Card>
+            <SectionTitle title="学习时段管理" caption="预设早晨、上午、下午、晚上、睡前，也可以按自己的作息添加。" />
+            <div className="grid gap-3">
+              <div className="flex gap-2">
+                <TextInput placeholder="例如 午休 / 通勤" value={newSlot} onChange={(event) => setNewSlot(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') addTimeSlot() }} />
+                <Button type="button" onClick={addTimeSlot}><Plus size={16} />添加</Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {timeSlots.map((slot) => {
+                  const used = tasks.some((task) => task.slot === slot)
+                  return (
+                    <span key={slot} className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200">
+                      {slot}
+                      <button
+                        type="button"
+                        disabled={used}
+                        onClick={() => removeTimeSlot(slot)}
+                        title={used ? '已有任务使用该时段，暂不能删除' : '删除时段'}
+                        className="flex size-5 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
+              <Panel>
+                <p className="text-xs leading-5 text-slate-500">删除时段不会自动删除任务。若某个时段已有任务，请先把任务移动到其他时段。</p>
+              </Panel>
             </div>
           </Card>
         </div>

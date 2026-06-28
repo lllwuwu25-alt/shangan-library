@@ -1,10 +1,11 @@
 export type Subject = '英语' | '政治' | '数学' | '专业课'
-export type ResourceCategory = Subject | '真题' | '笔记' | '作文模板'
+export type ResourceCategory = Subject | '真题' | '笔记' | '讲义' | '网课' | '模板' | '错题资料' | '高频考点' | '作文素材' | '面试资料' | '作文模板'
 export type TaskStatus = 'todo' | 'done'
 export type MistakeStatus = '待复习' | '已掌握'
 export type MistakeImportance = '红' | '黄' | '绿'
 export type DayName = '周一' | '周二' | '周三' | '周四' | '周五' | '周六' | '周日'
-export type TimeSlot = '上午' | '下午' | '晚上'
+export type TimeSlot = string
+export type ThemeMode = 'light' | 'dark' | 'system'
 
 export type FileAttachment = {
   id: string
@@ -58,6 +59,10 @@ export type Mistake = {
 export type Settings = {
   examName: string
   examDate: string
+  timeSlots: TimeSlot[]
+  lastBackupAt?: string
+  backupReminderDays: number
+  theme: ThemeMode
 }
 
 export type AppData = {

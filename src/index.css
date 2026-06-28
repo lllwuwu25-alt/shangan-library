@@ -28,6 +28,104 @@ body {
     linear-gradient(180deg, oklch(0.99 0.004 255), oklch(0.965 0.008 255));
 }
 
+[data-theme="dark"] {
+  color: oklch(0.92 0.015 255);
+  background: oklch(0.18 0.025 255);
+}
+
+[data-theme="dark"] body {
+  background:
+    linear-gradient(180deg, oklch(0.2 0.025 255), oklch(0.14 0.025 255));
+}
+
+[data-theme="dark"] .bg-white {
+  background-color: oklch(0.22 0.026 255) !important;
+}
+
+[data-theme="dark"] .bg-white\/95,
+[data-theme="dark"] .bg-white\/85 {
+  background-color: oklch(0.17 0.026 255 / 0.95) !important;
+}
+
+[data-theme="dark"] .bg-slate-50 {
+  background-color: oklch(0.18 0.025 255) !important;
+}
+
+[data-theme="dark"] .bg-slate-100 {
+  background-color: oklch(0.25 0.025 255) !important;
+}
+
+[data-theme="dark"] .bg-slate-950 {
+  background-color: oklch(0.13 0.028 255) !important;
+}
+
+[data-theme="dark"] aside,
+[data-theme="dark"] header {
+  background-color: oklch(0.17 0.026 255 / 0.96) !important;
+  border-color: oklch(0.32 0.03 255) !important;
+}
+
+[data-theme="dark"] aside nav button:not(.bg-blue-600) {
+  color: oklch(0.78 0.022 255) !important;
+}
+
+[data-theme="dark"] aside nav button:not(.bg-blue-600):hover,
+[data-theme="dark"] header button:not(.bg-blue-600):hover {
+  background-color: oklch(0.25 0.028 255) !important;
+  color: oklch(0.94 0.014 255) !important;
+}
+
+[data-theme="dark"] .text-slate-950,
+[data-theme="dark"] .text-slate-900,
+[data-theme="dark"] .text-slate-800,
+[data-theme="dark"] .text-slate-700 {
+  color: oklch(0.93 0.014 255) !important;
+}
+
+[data-theme="dark"] .text-slate-600,
+[data-theme="dark"] .text-slate-500,
+[data-theme="dark"] .text-slate-400 {
+  color: oklch(0.75 0.022 255) !important;
+}
+
+[data-theme="dark"] .border-slate-200 {
+  border-color: oklch(0.34 0.03 255) !important;
+}
+
+[data-theme="dark"] .border-r,
+[data-theme="dark"] .border-b {
+  border-color: oklch(0.32 0.03 255) !important;
+}
+
+[data-theme="dark"] .ring-slate-200,
+[data-theme="dark"] .ring-slate-200\/70,
+[data-theme="dark"] .ring-slate-200\/60 {
+  --tw-ring-color: oklch(0.34 0.03 255) !important;
+}
+
+[data-theme="dark"] .shadow-card,
+[data-theme="dark"] .shadow-soft {
+  box-shadow: 0 1px 0 oklch(0.34 0.03 255), 0 14px 30px oklch(0.1 0.02 255 / 0.28) !important;
+}
+
+[data-theme="dark"] .hover\:bg-slate-50:hover,
+[data-theme="dark"] .hover\:bg-slate-100:hover {
+  background-color: oklch(0.25 0.028 255) !important;
+}
+
+[data-theme="dark"] .hover\:bg-blue-50:hover,
+[data-theme="dark"] .hover\:bg-blue-50\/70:hover {
+  background-color: oklch(0.28 0.075 255 / 0.5) !important;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  color: oklch(0.93 0.014 255);
+  background-color: oklch(0.2 0.026 255);
+  border-color: oklch(0.34 0.03 255);
+}
+
 button,
 input,
 select,

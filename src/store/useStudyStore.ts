@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { clearData, loadData, saveData } from '../lib/storage'
+import { clearData, loadData, normalizeAppData, saveData } from '../lib/storage'
 import { initialData } from '../data/initialData'
 import { isoForCurrentWeekDay } from '../lib/date'
 import type { AppData, Mistake, ResourceItem, Settings, Task, WeeklyPlanItem } from '../types'
@@ -117,8 +117,9 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
     return next
   }),
   importData: (data) => set(() => {
-    persist(data)
-    return data
+    const normalized = normalizeAppData(data)
+    persist(normalized)
+    return normalized
   }),
   resetData: () => set(() => {
     clearData()

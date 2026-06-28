@@ -1,10 +1,23 @@
 import { initialData } from '../data/initialData'
+import { defaultTimeSlots } from '../constants'
 import { dayNameFromIso, isoForCurrentWeekDay, todayIso } from './date'
-import type { AppData, DayName, Mistake, ResourceItem, Subject, Task, TimeSlot, WeeklyPlanItem } from '../types'
+import type { AppData, DayName, Mistake, ResourceItem, Settings, Subject, Task, TimeSlot, WeeklyPlanItem } from '../types'
 
-const STORAGE_KEY = 'shangan-library-data-v1'
+export const STORAGE_KEY = 'shangan-library-data-v1'
 const isDayName = (value: unknown): value is DayName => ['周一', '周二', '周三', '周四', '周五', '周六', '周日'].includes(String(value))
-const isTimeSlot = (value: unknown): value is TimeSlot => ['上午', '下午', '晚上'].includes(String(value))
+const normalizeTimeSlots = (value: unknown): TimeSlot[] => {
+  if (!Array.isArray(value)) return defaultTimeSlots
+  const slots = value.map((item) => String(item).trim()).filter(Boolean)
+  return slots.length ? Array.from(new Set(slots)) : defaultTimeSlots
+}
+
+const normalizeSettings = (settings?: Partial<Settings>): Settings => ({
+  ...initialData.settings,
+  ...settings,
+  timeSlots: normalizeTimeSlots(settings?.timeSlots),
+  backupReminderDays: Math.max(1, Number(settings?.backupReminderDays ?? initialData.settings.backupReminderDays)),
+  theme: settings?.theme === 'dark' || settings?.theme === 'system' ? settings.theme : 'light',
+})
 
 const normalizeTask = (task: Partial<Task>): Task => {
   const date = task.date ?? todayIso()
@@ -15,7 +28,7 @@ const normalizeTask = (task: Partial<Task>): Task => {
     subject: (task.subject ?? '英语') as Subject,
     minutes: Number(task.minutes ?? 60),
     day,
-    slot: isTimeSlot(task.slot) ? task.slot : '上午',
+    slot: String(task.slot ?? '上午'),
     date: task.date ?? isoForCurrentWeekDay(day),
     status: task.status === 'done' ? 'done' : 'todo',
   }
@@ -32,7 +45,7 @@ const planItemToTask = (item: WeeklyPlanItem): Task => ({
   status: 'todo',
 })
 
-const migrateData = (raw: Partial<AppData>): AppData => {
+export const normalizeAppData = (raw: Partial<AppData>): AppData => {
   const normalizedTasks = (raw.tasks ?? []).map(normalizeTask)
   const convertedPlanTasks = (raw.weeklyPlan ?? [])
     .filter((item) => !normalizedTasks.some((task) => task.id === `task-from-${item.id}` || (task.day === item.day && task.slot === item.slot && task.title === item.content)))
@@ -54,7 +67,7 @@ const migrateData = (raw: Partial<AppData>): AppData => {
     weeklyPlan: [],
     resources,
     mistakes,
-    settings: raw.settings ?? initialData.settings,
+    settings: normalizeSettings(raw.settings),
   }
 }
 
@@ -62,7 +75,7 @@ export const loadData = (): AppData => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (!saved) return initialData
-    return migrateData({ ...initialData, ...JSON.parse(saved) })
+    return normalizeAppData({ ...initialData, ...JSON.parse(saved) })
   } catch {
     return initialData
   }

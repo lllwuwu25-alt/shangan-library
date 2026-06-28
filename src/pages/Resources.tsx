@@ -31,7 +31,7 @@ export function Resources() {
   return (
     <>
       <PageHeader title="资料库" description="把真题、笔记、模板和科目资料放在一个本地索引里，方便检索和复盘。" />
-      <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card>
           <SectionTitle title="资料列表" caption={`${filtered.length} / ${resources.length} 份资料`} />
           <div className="mb-4 flex flex-col gap-3 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200/70 md:flex-row md:items-center">

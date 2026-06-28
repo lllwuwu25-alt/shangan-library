@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, Clock, Database, HardDrive, TimerReset } from 'lucide-react'
+import { ArrowRight, CheckCircle2, Clock, Database, Flame, HardDrive, TimerReset } from 'lucide-react'
 import { currentDayName, daysUntil, isoForCurrentWeekDay } from '../lib/date'
 import { useStudyStore } from '../store/useStudyStore'
 import { Card, EmptyState, GhostButton, Panel, Pill, SectionTitle, StatCard } from '../components/ui'
@@ -22,12 +22,20 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
     const doneCount = subjectTasks.filter((task) => task.status === 'done').length
     return { subject, value: subjectTasks.length ? Math.round((doneCount / subjectTasks.length) * 100) : 0 }
   })
+  const heatmap = buildHeatmap(done)
+  const streak = calculateStreak(heatmap.days)
+  const activeDays = heatmap.days.filter((day) => day.minutes > 0).length
+  const bestDay = heatmap.days.reduce((best, day) => (day.minutes > best.minutes ? day : best), heatmap.days[0])
+  const currentGap = calculateCurrentGap(heatmap.days)
+  const monthMinutes = done
+    .filter((task) => task.date.startsWith(todayIsoMonth()))
+    .reduce((sum, task) => sum + task.minutes, 0)
 
   return (
     <>
       <PageHeader title="首页总览" description="今天先看最该做的事，再处理资料和错题。所有数据保存在本机浏览器中。" />
       <section className="mb-5 rounded-3xl bg-slate-950 p-5 text-white shadow-soft">
-        <div className="grid gap-5 lg:grid-cols-[1fr_320px] lg:items-center">
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center">
           <div>
             <p className="text-sm text-blue-200">{todayDay} · {isoForCurrentWeekDay(todayDay)}</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight">今天的学习焦点已经同步到计划表</h2>
@@ -98,6 +106,73 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
         </div>
       </div>
       <Card className="mt-5">
+        <SectionTitle
+          title="学习热力图"
+          caption="按已完成任务统计最近 12 周学习强度，颜色越深代表投入越多。"
+          action={<span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100"><Flame size={13} />连续 {streak} 天</span>}
+        />
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200/70">
+            <div className="grid gap-4 lg:grid-cols-3">
+              {heatmap.months.map((month) => (
+                <div key={month.key} className="rounded-2xl bg-white p-3 ring-1 ring-slate-200/70">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-slate-900">{month.label}</p>
+                    <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-500">{month.activeDays} 天活跃</span>
+                  </div>
+                  <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[10px] text-slate-400">
+                    {['一', '二', '三', '四', '五', '六', '日'].map((day) => <span key={day}>{day}</span>)}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {month.cells.map((day, index) => (
+                      day ? (
+                        <span
+                          key={day.date}
+                          title={`${day.date} · ${day.minutes} 分钟 · ${day.doneCount} 个完成任务`}
+                          className={`aspect-square rounded-[5px] ring-1 ${heatLevelClass(day.minutes)}`}
+                        />
+                      ) : <span key={`${month.key}-empty-${index}`} className="aspect-square" />
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div className="lg:col-span-3">
+                <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+                  <span>近 3 个自然月活跃 {activeDays} 天</span>
+                  <div className="flex items-center gap-1">
+                    <span>少</span>
+                    {[0, 30, 90, 180, 300].map((minutes) => <span key={minutes} className={`size-3 rounded-[3px] ring-1 ${heatLevelClass(minutes)}`} />)}
+                    <span>多</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+            <Panel>
+              <p className="text-xs text-slate-500">今天学了多久</p>
+              <p className="mt-1 text-xl font-semibold text-slate-950">{Math.floor(todayMinutes / 60)}h {todayMinutes % 60}m</p>
+            </Panel>
+            <Panel>
+              <p className="text-xs text-slate-500">连续打卡</p>
+              <p className="mt-1 text-xl font-semibold text-slate-950">{streak} 天</p>
+            </Panel>
+            <Panel>
+              <p className="text-xs text-slate-500">本月累计</p>
+              <p className="mt-1 text-xl font-semibold text-slate-950">{(monthMinutes / 60).toFixed(1)} 小时</p>
+            </Panel>
+            <Panel className={currentGap > 0 ? 'bg-amber-50 text-amber-900 ring-amber-100' : 'bg-emerald-50 text-emerald-900 ring-emerald-100'}>
+              <p className="text-xs">{currentGap > 0 ? '当前断档' : '今日已打卡'}</p>
+              <p className="mt-1 text-xl font-semibold">{currentGap > 0 ? `${currentGap} 天` : '保持中'}</p>
+            </Panel>
+            <Panel>
+              <p className="text-xs text-slate-500">最高投入日</p>
+              <p className="mt-1 text-sm font-semibold text-slate-950">{bestDay.minutes > 0 ? `${bestDay.date} · ${bestDay.minutes} 分钟` : '暂无完成记录'}</p>
+            </Panel>
+          </div>
+        </div>
+      </Card>
+      <Card className="mt-5">
         <SectionTitle title={`今日科目安排 · ${isoForCurrentWeekDay(todayDay)}`} />
         <div className="grid gap-3 md:grid-cols-3">
           {dayPlan.length === 0 ? <EmptyState text="今天还没有科目安排，可以去学习计划中添加。" /> : dayPlan.map((item) => (
@@ -111,4 +186,95 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
       </Card>
     </>
   )
+}
+
+function todayIsoMonth() {
+  const today = new Date()
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`
+}
+
+function toIso(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+type HeatmapDay = {
+  date: string
+  minutes: number
+  doneCount: number
+}
+
+function buildHeatmap(doneTasks: Array<{ date: string; minutes: number }>) {
+  const statsByDate = new Map<string, { minutes: number; doneCount: number }>()
+  doneTasks.forEach((task) => {
+    const current = statsByDate.get(task.date) ?? { minutes: 0, doneCount: 0 }
+    statsByDate.set(task.date, { minutes: current.minutes + task.minutes, doneCount: current.doneCount + 1 })
+  })
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const monthStarts = [-2, -1, 0].map((offset) => new Date(today.getFullYear(), today.getMonth() + offset, 1))
+
+  const months = monthStarts.map((monthStart) => {
+    const year = monthStart.getFullYear()
+    const month = monthStart.getMonth()
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const leadingEmptyCells = (monthStart.getDay() + 6) % 7
+    const days: HeatmapDay[] = Array.from({ length: daysInMonth }, (_, index) => {
+      const date = new Date(year, month, index + 1)
+      const iso = toIso(date)
+      const stats = statsByDate.get(iso) ?? { minutes: 0, doneCount: 0 }
+      return {
+        date: iso,
+        minutes: stats.minutes,
+        doneCount: stats.doneCount,
+      }
+    })
+    const trailingEmptyCells = (7 - ((leadingEmptyCells + days.length) % 7)) % 7
+    return {
+      key: `${year}-${month + 1}`,
+      label: `${year} 年 ${month + 1} 月`,
+      activeDays: days.filter((day) => day.minutes > 0).length,
+      days,
+      cells: [
+        ...Array.from<null>({ length: leadingEmptyCells }).fill(null),
+        ...days,
+        ...Array.from<null>({ length: trailingEmptyCells }).fill(null),
+      ],
+    }
+  })
+
+  const days = months.flatMap((month) => month.days).filter((day) => day.date <= toIso(today))
+  return {
+    days,
+    months,
+  }
+}
+
+function calculateStreak(days: ReturnType<typeof buildHeatmap>['days']) {
+  let streak = 0
+  for (let index = days.length - 1; index >= 0; index -= 1) {
+    if (days[index].minutes <= 0) break
+    streak += 1
+  }
+  return streak
+}
+
+function calculateCurrentGap(days: ReturnType<typeof buildHeatmap>['days']) {
+  let gap = 0
+  for (let index = days.length - 1; index >= 0; index -= 1) {
+    if (days[index].minutes > 0) break
+    gap += 1
+  }
+  return gap
+}
+
+function heatLevelClass(minutes: number) {
+  if (minutes >= 300) return 'bg-emerald-700 ring-emerald-800'
+  if (minutes >= 180) return 'bg-emerald-600 ring-emerald-700'
+  if (minutes >= 90) return 'bg-emerald-400 ring-emerald-500'
+  if (minutes > 0) return 'bg-emerald-200 ring-emerald-300'
+  return 'bg-white ring-slate-200'
 }

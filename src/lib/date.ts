@@ -1,11 +1,18 @@
 import type { DayName } from '../types'
 
-export const todayIso = () => new Date().toISOString().slice(0, 10)
+const localIsoDate = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export const todayIso = () => localIsoDate(new Date())
 
 export const addDaysIso = (days: number) => {
   const date = new Date()
   date.setDate(date.getDate() + days)
-  return date.toISOString().slice(0, 10)
+  return localIsoDate(date)
 }
 
 export const daysUntil = (isoDate: string) => {
@@ -36,5 +43,5 @@ export const isoForCurrentWeekDay = (day: DayName) => {
   const monday = new Date(today)
   monday.setDate(today.getDate() - mondayOffset)
   monday.setDate(monday.getDate() + weekDays.indexOf(day))
-  return monday.toISOString().slice(0, 10)
+  return localIsoDate(monday)
 }
