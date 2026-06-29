@@ -10,6 +10,7 @@ type StudyStore = AppData & {
   addTask: (task: Omit<Task, 'id' | 'date'> & Partial<Pick<Task, 'date'>>) => void
   updateTask: (id: string, patch: Partial<Task>) => void
   deleteTask: (id: string) => void
+  deleteTasksByDateRange: (startIso: string, endIso: string) => void
   toggleTask: (id: string) => void
   addPlanItem: (item: Omit<WeeklyPlanItem, 'id'>) => void
   updatePlanItem: (id: string, patch: Partial<WeeklyPlanItem>) => void
@@ -46,6 +47,11 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
   }),
   deleteTask: (id) => set((state) => {
     const next = { ...state, tasks: state.tasks.filter((task) => task.id !== id) }
+    persist(next)
+    return next
+  }),
+  deleteTasksByDateRange: (startIso, endIso) => set((state) => {
+    const next = { ...state, tasks: state.tasks.filter((task) => task.date < startIso || task.date > endIso) }
     persist(next)
     return next
   }),

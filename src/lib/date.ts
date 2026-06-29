@@ -36,12 +36,19 @@ export const dayNameFromIso = (isoDate: string): DayName => {
   return days[new Date(`${isoDate}T00:00:00`).getDay()]
 }
 
-export const isoForCurrentWeekDay = (day: DayName) => {
+export const isoForWeekDay = (day: DayName, weekOffset = 0) => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const mondayOffset = (today.getDay() + 6) % 7
   const monday = new Date(today)
   monday.setDate(today.getDate() - mondayOffset)
-  monday.setDate(monday.getDate() + weekDays.indexOf(day))
+  monday.setDate(monday.getDate() + weekOffset * 7 + weekDays.indexOf(day))
   return localIsoDate(monday)
 }
+
+export const isoForCurrentWeekDay = (day: DayName) => isoForWeekDay(day, 0)
+
+export const weekRange = (weekOffset = 0) => ({
+  start: isoForWeekDay('周一', weekOffset),
+  end: isoForWeekDay('周日', weekOffset),
+})

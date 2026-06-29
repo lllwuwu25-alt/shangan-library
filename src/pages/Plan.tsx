@@ -1,38 +1,53 @@
 import { CalendarClock, CheckCircle2, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { dayNames, defaultTimeSlots, subjects } from '../constants'
-import { currentDayName, daysUntil, isoForCurrentWeekDay } from '../lib/date'
+import { addDaysIso, currentDayName, dayNameFromIso, daysUntil, isoForWeekDay, todayIso, weekRange } from '../lib/date'
 import { useStudyStore } from '../store/useStudyStore'
 import type { DayName, Subject, Task, TimeSlot } from '../types'
 import { Button, Card, DangerButton, EmptyState, GhostButton, Panel, SectionTitle, Select, TextInput } from '../components/ui'
 import { PageHeader } from '../components/Layout'
 
 export function Plan() {
-  const { tasks, settings, addTask, updateTask, deleteTask, toggleTask, updateSettings } = useStudyStore()
+  const { tasks, settings, addTask, updateTask, deleteTask, deleteTasksByDateRange, toggleTask, updateSettings } = useStudyStore()
   const [taskTitle, setTaskTitle] = useState('')
   const [taskSubject, setTaskSubject] = useState<Subject>('英语')
-  const [taskDay, setTaskDay] = useState<DayName>(currentDayName())
+  const [taskDate, setTaskDate] = useState(todayIso())
   const [taskSlot, setTaskSlot] = useState<TimeSlot>('上午')
   const [taskMinutes, setTaskMinutes] = useState(60)
+  const [showNextWeek, setShowNextWeek] = useState(false)
   const [newSlot, setNewSlot] = useState('')
   const todayDay = currentDayName()
   const timeSlots = settings.timeSlots.length ? settings.timeSlots : defaultTimeSlots
+  const currentWeek = weekRange(0)
+  const nextWeek = weekRange(1)
+  const todayDate = todayIso()
+  const tomorrowDate = addDaysIso(1)
   const tomorrowDay = dayNames[(dayNames.indexOf(todayDay) + 1) % dayNames.length]
-  const todayTasks = tasks.filter((task) => task.day === todayDay)
-  const tomorrowTasks = tasks.filter((task) => task.day === tomorrowDay)
+  const currentWeekTasks = tasks.filter((task) => task.date >= currentWeek.start && task.date <= currentWeek.end)
+  const nextWeekTasks = tasks.filter((task) => task.date >= nextWeek.start && task.date <= nextWeek.end)
+  const todayTasks = tasks.filter((task) => task.date === todayDate)
+  const tomorrowTasks = tasks.filter((task) => task.date === tomorrowDate)
   const countdown = daysUntil(settings.examDate)
+  const selectedTaskDay = taskDate ? dayNameFromIso(taskDate) : todayDay
 
   const createTask = () => {
-    if (!taskTitle.trim()) return
+    if (!taskTitle.trim() || !taskDate || taskDate < currentWeek.start || taskDate > nextWeek.end) return
     addTask({
       title: taskTitle,
       subject: taskSubject,
       minutes: taskMinutes,
-      day: taskDay,
+      day: selectedTaskDay,
       slot: taskSlot,
+      date: taskDate,
       status: 'todo',
     })
     setTaskTitle('')
+  }
+
+  const clearCurrentWeekTasks = () => {
+    if (currentWeekTasks.length === 0) return
+    if (!confirm(`确认清除本周 ${currentWeek.start} 至 ${currentWeek.end} 的 ${currentWeekTasks.length} 个计划任务？下周计划不会受影响。`)) return
+    deleteTasksByDateRange(currentWeek.start, currentWeek.end)
   }
 
   const addTimeSlot = () => {
@@ -52,54 +67,51 @@ export function Plan() {
 
   return (
     <>
-      <PageHeader title="学习计划" description="任务就是周计划表的内容。新增任务后会进入对应星期和时段，首页今日任务按当天星期同步。" />
+      <PageHeader title="学习计划" description="按日期新增计划，本周默认展示，下周可展开查看。" />
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <Card className="p-4 sm:p-5">
-          <SectionTitle title="本周学习计划表" caption="单元格内任务会同步到首页今日任务。" />
-          <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-            {dayNames.map((day) => {
-              const dayTasks = tasks.filter((task) => task.day === day)
-              return (
-                <div key={day} className={`rounded-2xl p-3 ring-1 ${day === todayDay ? 'bg-blue-50/80 ring-blue-100' : 'bg-slate-50 ring-slate-200/70'}`}>
-                  <div className="mb-3 flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className={`text-sm font-semibold ${day === todayDay ? 'text-blue-800' : 'text-slate-900'}`}>{day}</p>
-                        {day === todayDay && <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-medium text-white">今天</span>}
-                      </div>
-                      <p className="mt-1 text-xs text-slate-500">{isoForCurrentWeekDay(day)} · {dayTasks.length} 个任务</p>
-                    </div>
-                  </div>
-                  <div className="grid gap-3">
-                    {timeSlots.map((slot) => {
-                      const cellTasks = dayTasks.filter((task) => task.slot === slot)
-                      return (
-                        <div key={`${day}-${slot}`} className="rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/70">
-                          <div className="mb-2 flex items-center justify-between gap-2">
-                            <p className="text-xs font-medium text-slate-500">{slot}</p>
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">{cellTasks.length}</span>
-                          </div>
-                          {cellTasks.length === 0 ? (
-                            <p className="rounded-lg bg-slate-50 px-3 py-3 text-center text-xs text-slate-400">暂无任务</p>
-                          ) : cellTasks.map((task) => (
-                            <PlanTaskCard key={task.id} task={task} updateTask={updateTask} deleteTask={deleteTask} toggleTask={toggleTask} />
-                          ))}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </Card>
+        <div className="space-y-5">
+          <Card className="p-4 sm:p-5">
+            <SectionTitle
+              title="本周学习计划表"
+              caption={`仅显示本周日期内任务，今日任务会同步到首页。${currentWeek.start} 至 ${currentWeek.end}`}
+              action={<DangerButton onClick={clearCurrentWeekTasks} disabled={currentWeekTasks.length === 0}><Trash2 size={15} />清除本周计划</DangerButton>}
+            />
+            <WeekPlanBoard
+              tasks={currentWeekTasks}
+              weekOffset={0}
+              todayDay={todayDay}
+              timeSlots={timeSlots}
+              updateTask={updateTask}
+              deleteTask={deleteTask}
+              toggleTask={toggleTask}
+            />
+          </Card>
+          <Card className="p-4 sm:p-5">
+            <SectionTitle
+              title="下周计划安排"
+              caption={`提前安排下周任务；到下周会自动进入本周计划。${nextWeek.start} 至 ${nextWeek.end} · ${nextWeekTasks.length} 个任务`}
+              action={<GhostButton type="button" onClick={() => setShowNextWeek((value) => !value)}>{showNextWeek ? '收起下周计划' : '展开下周计划'}</GhostButton>}
+            />
+            {showNextWeek && (
+              <WeekPlanBoard
+                tasks={nextWeekTasks}
+                weekOffset={1}
+                todayDay={todayDay}
+                timeSlots={timeSlots}
+                updateTask={updateTask}
+                deleteTask={deleteTask}
+                toggleTask={toggleTask}
+              />
+            )}
+          </Card>
+        </div>
         <div className="space-y-5">
           <Card>
-            <SectionTitle title="新增任务到计划表" caption="选择星期和时段后，任务会进入对应格子。" />
+            <SectionTitle title="新增计划" caption="选择本周或下周日期，任务会进入对应计划表。" />
             <div className="grid gap-3">
               <TextInput placeholder="任务名称" value={taskTitle} onChange={(event) => setTaskTitle(event.target.value)} />
               <div className="grid grid-cols-2 gap-3">
-                <Select value={taskDay} onChange={(event) => setTaskDay(event.target.value as DayName)}>{dayNames.map((day) => <option key={day}>{day}</option>)}</Select>
+                <TextInput type="date" min={currentWeek.start} max={nextWeek.end} value={taskDate} onChange={(event) => setTaskDate(event.target.value)} />
                 <Select value={taskSlot} onChange={(event) => setTaskSlot(event.target.value as TimeSlot)}>{timeSlots.map((slot) => <option key={slot}>{slot}</option>)}</Select>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -107,7 +119,7 @@ export function Plan() {
                 <TextInput type="number" min={1} value={taskMinutes} onChange={(event) => setTaskMinutes(Number(event.target.value))} />
               </div>
               <Panel className="bg-blue-50 text-blue-800 ring-blue-100">
-                <p className="text-xs">将写入 <b>{taskDay}</b> · <b>{taskSlot}</b>，本周日期为 {isoForCurrentWeekDay(taskDay)}。</p>
+                <p className="text-xs">将写入 <b>{taskDate}</b> · <b>{selectedTaskDay}</b> · <b>{taskSlot}</b>。</p>
               </Panel>
               <Button onClick={createTask}><Plus size={16} />新增任务</Button>
             </div>
@@ -203,6 +215,65 @@ function PlanTaskCard({ task, updateTask, deleteTask, toggleTask }: { task: Task
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function WeekPlanBoard({
+  tasks,
+  weekOffset,
+  todayDay,
+  timeSlots,
+  updateTask,
+  deleteTask,
+  toggleTask,
+}: {
+  tasks: Task[]
+  weekOffset: number
+  todayDay: DayName
+  timeSlots: TimeSlot[]
+  updateTask: ReturnType<typeof useStudyStore.getState>['updateTask']
+  deleteTask: ReturnType<typeof useStudyStore.getState>['deleteTask']
+  toggleTask: ReturnType<typeof useStudyStore.getState>['toggleTask']
+}) {
+  return (
+    <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+      {dayNames.map((day) => {
+        const date = isoForWeekDay(day, weekOffset)
+        const isToday = weekOffset === 0 && day === todayDay && date === todayIso()
+        const dayTasks = tasks.filter((task) => task.date === date)
+        return (
+          <div key={`${weekOffset}-${day}`} className={`rounded-2xl p-3 ring-1 ${isToday ? 'bg-blue-50/80 ring-blue-100' : 'bg-slate-50 ring-slate-200/70'}`}>
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className={`text-sm font-semibold ${isToday ? 'text-blue-800' : 'text-slate-900'}`}>{day}</p>
+                  {isToday && <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-medium text-white">今天</span>}
+                </div>
+                <p className="mt-1 text-xs text-slate-500">{date} · {dayTasks.length} 个任务</p>
+              </div>
+            </div>
+            <div className="grid gap-3">
+              {timeSlots.map((slot) => {
+                const cellTasks = dayTasks.filter((task) => task.slot === slot)
+                return (
+                  <div key={`${date}-${slot}`} className="rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/70">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-xs font-medium text-slate-500">{slot}</p>
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">{cellTasks.length}</span>
+                    </div>
+                    {cellTasks.length === 0 ? (
+                      <p className="rounded-lg bg-slate-50 px-3 py-3 text-center text-xs text-slate-400">暂无任务</p>
+                    ) : cellTasks.map((task) => (
+                      <PlanTaskCard key={task.id} task={task} updateTask={updateTask} deleteTask={deleteTask} toggleTask={toggleTask} />
+                    ))}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

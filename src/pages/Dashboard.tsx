@@ -1,5 +1,5 @@
 import { ArrowRight, CheckCircle2, Clock, Database, Flame, HardDrive, TimerReset } from 'lucide-react'
-import { currentDayName, daysUntil, isoForCurrentWeekDay } from '../lib/date'
+import { currentDayName, daysUntil, isoForCurrentWeekDay, todayIso, weekRange } from '../lib/date'
 import { useStudyStore } from '../store/useStudyStore'
 import { Card, EmptyState, GhostButton, Panel, Pill, SectionTitle, StatCard } from '../components/ui'
 import { PageHeader } from '../components/Layout'
@@ -7,13 +7,17 @@ import { PageHeader } from '../components/Layout'
 export function Dashboard({ go }: { go: (path: string) => void }) {
   const { tasks, resources, settings, toggleTask } = useStudyStore()
   const todayDay = currentDayName()
-  const todayTasks = tasks.filter((task) => task.day === todayDay)
+  const todayDate = todayIso()
+  const currentWeek = weekRange(0)
+  const currentWeekTasks = tasks.filter((task) => task.date >= currentWeek.start && task.date <= currentWeek.end)
+  const todayTasks = tasks.filter((task) => task.date === todayDate)
   const done = tasks.filter((task) => task.status === 'done')
   const todayDone = todayTasks.filter((task) => task.status === 'done')
   const nextTask = todayTasks.find((task) => task.status !== 'done')
-  const todayMinutes = done.filter((task) => task.day === todayDay).reduce((sum, task) => sum + task.minutes, 0)
-  const completion = tasks.length ? Math.round((done.length / tasks.length) * 100) : 0
-  const dayPlan = tasks.filter((task) => task.day === todayDay)
+  const todayMinutes = done.filter((task) => task.date === todayDate).reduce((sum, task) => sum + task.minutes, 0)
+  const currentWeekDone = currentWeekTasks.filter((task) => task.status === 'done')
+  const completion = currentWeekTasks.length ? Math.round((currentWeekDone.length / currentWeekTasks.length) * 100) : 0
+  const dayPlan = todayTasks
   const countdown = daysUntil(settings.examDate)
   const examName = settings.examName || '考试'
   const countdownText = countdown === null ? '未设置' : `${countdown} 天`
@@ -56,7 +60,7 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={<TimerReset size={18} />} label="考试倒计时" value={countdownText} detail={settings.examName || '请在设置中填写考试信息'} />
         <StatCard icon={<Clock size={18} />} label="今日学习时长" value={`${Math.floor(todayMinutes / 60)}h ${todayMinutes % 60}m`} detail={`${todayDone.length}/${todayTasks.length} 个任务完成`} tone="slate" />
-        <StatCard icon={<CheckCircle2 size={18} />} label="本周完成率" value={`${completion}%`} detail="按所有计划任务计算" tone="green" />
+        <StatCard icon={<CheckCircle2 size={18} />} label="本周完成率" value={`${completion}%`} detail="按本周计划任务计算" tone="green" />
         <StatCard icon={<Database size={18} />} label="累计资料数" value={`${resources.length} 份`} detail="含文件附件索引" tone="amber" />
       </div>
       <div className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
