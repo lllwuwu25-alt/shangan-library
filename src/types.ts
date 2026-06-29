@@ -1,4 +1,4 @@
-export type Subject = '英语' | '政治' | '数学' | '专业课'
+export type Subject = string
 export type ResourceCategory = Subject | '真题' | '笔记' | '讲义' | '网课' | '模板' | '错题资料' | '高频考点' | '作文素材' | '面试资料' | '作文模板'
 export type TaskStatus = 'todo' | 'done'
 export type MistakeStatus = '待复习' | '已掌握'
@@ -59,6 +59,7 @@ export type Mistake = {
 export type Settings = {
   examName: string
   examDate: string
+  subjects: Subject[]
   timeSlots: TimeSlot[]
   lastBackupAt?: string
   backupReminderDays: number

@@ -2,7 +2,7 @@ import { FileStack, FileText, Paperclip, Plus, Search, Trash2, Upload } from 'lu
 import { useMemo, useState } from 'react'
 import { AttachmentList, UploadHint } from '../components/AttachmentList'
 import { FilePreviewModal } from '../components/FilePreviewModal'
-import { resourceCategories } from '../constants'
+import { resourceCategoryOptions } from '../constants'
 import { fileNameWithoutExtension, filesToAttachments } from '../lib/files'
 import { useStudyStore } from '../store/useStudyStore'
 import type { FileAttachment, ResourceCategory, ResourceItem } from '../types'
@@ -10,7 +10,7 @@ import { Button, Card, DangerButton, EmptyState, GhostButton, Pill, SectionTitle
 import { PageHeader } from '../components/Layout'
 
 export function Resources() {
-  const { resources, addResource, addResources, updateResource, deleteResource, openResource } = useStudyStore()
+  const { resources, settings, addResource, addResources, updateResource, deleteResource, openResource } = useStudyStore()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<'全部' | ResourceCategory>('全部')
   const [title, setTitle] = useState('')
@@ -20,6 +20,10 @@ export function Resources() {
   const [attachments, setAttachments] = useState<FileAttachment[]>([])
   const [batchMessage, setBatchMessage] = useState('')
   const [previewFile, setPreviewFile] = useState<FileAttachment | null>(null)
+  const resourceCategories = resourceCategoryOptions([...settings.subjects, ...resources.map((item) => item.category)])
+  const writableCategories = resourceCategories.filter((item) => item !== '全部')
+  const safeNewCategory = writableCategories.includes(newCategory) ? newCategory : writableCategories[0]
+  const safeBatchCategory = writableCategories.includes(batchCategory) ? batchCategory : writableCategories[0]
 
   const filtered = useMemo(() => resources.filter((item) => {
     const hitQuery = `${item.title} ${item.description}`.toLowerCase().includes(query.toLowerCase())
@@ -56,7 +60,7 @@ export function Resources() {
                     <ResourceAttachments item={item} updateResource={updateResource} openResource={openResource} setPreviewFile={setPreviewFile} />
                   </div>
                   <div className="flex shrink-0 flex-wrap gap-2 md:justify-end">
-                    <Select value={item.category} onChange={(event) => updateResource(item.id, { category: event.target.value as ResourceCategory })}>{resourceCategories.filter((item) => item !== '全部').map((item) => <option key={item}>{item}</option>)}</Select>
+                    <Select value={item.category} onChange={(event) => updateResource(item.id, { category: event.target.value as ResourceCategory })}>{writableCategories.map((item) => <option key={item}>{item}</option>)}</Select>
                     <GhostButton onClick={() => openResource(item.id)}>标记打开</GhostButton>
                     <DangerButton onClick={() => deleteResource(item.id)}><Trash2 size={15} />删除</DangerButton>
                   </div>
@@ -76,7 +80,7 @@ export function Resources() {
             <SectionTitle title="新增资料" caption="文件会保存到当前浏览器本地数据。" />
             <div className="grid gap-3">
               <TextInput placeholder="资料标题" value={title} onChange={(event) => setTitle(event.target.value)} />
-              <Select value={newCategory} onChange={(event) => setNewCategory(event.target.value as ResourceCategory)}>{resourceCategories.filter((item) => item !== '全部').map((item) => <option key={item}>{item}</option>)}</Select>
+              <Select value={safeNewCategory} onChange={(event) => setNewCategory(event.target.value as ResourceCategory)}>{writableCategories.map((item) => <option key={item}>{item}</option>)}</Select>
               <TextArea placeholder="简短描述或本地路径备注" value={description} onChange={(event) => setDescription(event.target.value)} />
               <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-blue-200 bg-blue-50 px-3 py-5 text-center text-sm font-medium text-blue-700 transition hover:bg-blue-100">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><Upload size={17} /></span>
@@ -90,13 +94,13 @@ export function Resources() {
                 }} />
               </label>
               <AttachmentList attachments={attachments} compact onOpen={setPreviewFile} onRemove={(id) => setAttachments((current) => current.filter((item) => item.id !== id))} />
-              <Button className="w-full" onClick={() => { if (!title.trim()) return; addResource({ title, category: newCategory, description, attachments }); setTitle(''); setDescription(''); setAttachments([]) }}><Plus size={16} />新增资料</Button>
+              <Button className="w-full" onClick={() => { if (!title.trim()) return; addResource({ title, category: safeNewCategory, description, attachments }); setTitle(''); setDescription(''); setAttachments([]) }}><Plus size={16} />新增资料</Button>
             </div>
           </Card>
           <Card>
             <SectionTitle title="批量导入" caption="一次选择多个文件，自动生成资料条目。" />
             <div className="grid gap-3">
-              <Select value={batchCategory} onChange={(event) => setBatchCategory(event.target.value as ResourceCategory)}>{resourceCategories.filter((item) => item !== '全部').map((item) => <option key={item}>{item}</option>)}</Select>
+              <Select value={safeBatchCategory} onChange={(event) => setBatchCategory(event.target.value as ResourceCategory)}>{writableCategories.map((item) => <option key={item}>{item}</option>)}</Select>
               <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-sm font-medium text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><FileStack size={17} /></span>
                 <span>批量选择文件并导入</span>
@@ -106,7 +110,7 @@ export function Resources() {
                   const nextFiles = await filesToAttachments(event.target.files)
                   addResources(nextFiles.map((file) => ({
                     title: fileNameWithoutExtension(file.name),
-                    category: batchCategory,
+                    category: safeBatchCategory,
                     description: `批量导入：${file.name}`,
                     attachments: [file],
                   })))

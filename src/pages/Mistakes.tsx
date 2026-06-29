@@ -4,13 +4,13 @@ import { AttachmentList, UploadHint } from '../components/AttachmentList'
 import { FilePreviewModal } from '../components/FilePreviewModal'
 import { PageHeader } from '../components/Layout'
 import { Button, Card, DangerButton, EmptyState, GhostButton, Pill, SectionTitle, Select, TextArea, TextInput } from '../components/ui'
-import { subjects } from '../constants'
+import { defaultSubjects, subjectOptions } from '../constants'
 import { fileNameWithoutExtension, filesToAttachments } from '../lib/files'
 import { useStudyStore } from '../store/useStudyStore'
 import type { FileAttachment, Mistake, MistakeImportance, MistakeStatus, Subject } from '../types'
 
 export function Mistakes() {
-  const { mistakes, addMistake, addMistakes, updateMistake, deleteMistake, toggleMistake } = useStudyStore()
+  const { mistakes, settings, addMistake, addMistakes, updateMistake, deleteMistake, toggleMistake } = useStudyStore()
   const [subject, setSubject] = useState<'全部' | Subject>('全部')
   const [status, setStatus] = useState<'全部' | MistakeStatus>('全部')
   const [query, setQuery] = useState('')
@@ -24,6 +24,9 @@ export function Mistakes() {
   const [batchImportance, setBatchImportance] = useState<MistakeImportance>('黄')
   const [batchMessage, setBatchMessage] = useState('')
   const [previewFile, setPreviewFile] = useState<FileAttachment | null>(null)
+  const subjects = subjectOptions([...settings.subjects, ...mistakes.map((item) => item.subject)])
+  const safeNewSubject = subjects.includes(newSubject) ? newSubject : subjects[0] ?? defaultSubjects[0]
+  const safeBatchSubject = subjects.includes(batchSubject) ? batchSubject : subjects[0] ?? defaultSubjects[0]
 
   const filtered = useMemo(() => mistakes.filter((item) => {
     const hitSubject = subject === '全部' || item.subject === subject
@@ -96,7 +99,7 @@ export function Mistakes() {
           <Card>
             <SectionTitle title="新增错题" caption="用等级标记优先复习顺序。" />
             <div className="grid gap-3">
-              <Select value={newSubject} onChange={(event) => setNewSubject(event.target.value as Subject)}>{subjects.map((item) => <option key={item}>{item}</option>)}</Select>
+              <Select value={safeNewSubject} onChange={(event) => setNewSubject(event.target.value as Subject)}>{subjects.map((item) => <option key={item}>{item}</option>)}</Select>
               <Select value={importance} onChange={(event) => setImportance(event.target.value as MistakeImportance)}>
                 <option>红</option>
                 <option>黄</option>
@@ -117,13 +120,13 @@ export function Mistakes() {
                 }} />
               </label>
               <AttachmentList attachments={attachments} compact onOpen={setPreviewFile} onRemove={(id) => setAttachments((current) => current.filter((item) => item.id !== id))} />
-              <Button className="w-full" onClick={() => { if (!question.trim()) return; addMistake({ subject: newSubject, question, answer, note, status: '待复习', importance, attachments }); setQuestion(''); setAnswer(''); setNote(''); setAttachments([]); setImportance('黄') }}><Plus size={16} />新增错题</Button>
+              <Button className="w-full" onClick={() => { if (!question.trim()) return; addMistake({ subject: safeNewSubject, question, answer, note, status: '待复习', importance, attachments }); setQuestion(''); setAnswer(''); setNote(''); setAttachments([]); setImportance('黄') }}><Plus size={16} />新增错题</Button>
             </div>
           </Card>
           <Card>
             <SectionTitle title="批量导入错题" caption="适合一次导入截图、PDF 或 Word 题单。" />
             <div className="grid gap-3">
-              <Select value={batchSubject} onChange={(event) => setBatchSubject(event.target.value as Subject)}>{subjects.map((item) => <option key={item}>{item}</option>)}</Select>
+              <Select value={safeBatchSubject} onChange={(event) => setBatchSubject(event.target.value as Subject)}>{subjects.map((item) => <option key={item}>{item}</option>)}</Select>
               <Select value={batchImportance} onChange={(event) => setBatchImportance(event.target.value as MistakeImportance)}>
                 <option>红</option>
                 <option>黄</option>
@@ -137,7 +140,7 @@ export function Mistakes() {
                   if (!event.target.files?.length) return
                   const nextFiles = await filesToAttachments(event.target.files)
                   addMistakes(nextFiles.map((file) => ({
-                    subject: batchSubject,
+                    subject: safeBatchSubject,
                     question: fileNameWithoutExtension(file.name),
                     answer: '',
                     note: `批量导入：${file.name}`,

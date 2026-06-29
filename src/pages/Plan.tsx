@@ -1,6 +1,6 @@
 import { CalendarClock, CheckCircle2, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { dayNames, defaultTimeSlots, subjects } from '../constants'
+import { dayNames, defaultSubjects, defaultTimeSlots, subjectOptions } from '../constants'
 import { addDaysIso, currentDayName, dayNameFromIso, daysUntil, isoForWeekDay, todayIso, weekRange } from '../lib/date'
 import { useStudyStore } from '../store/useStudyStore'
 import type { DayName, Subject, Task, TimeSlot } from '../types'
@@ -18,6 +18,8 @@ export function Plan() {
   const [newSlot, setNewSlot] = useState('')
   const todayDay = currentDayName()
   const timeSlots = settings.timeSlots.length ? settings.timeSlots : defaultTimeSlots
+  const subjects = subjectOptions(settings.subjects)
+  const safeTaskSubject = subjects.includes(taskSubject) ? taskSubject : subjects[0] ?? defaultSubjects[0]
   const currentWeek = weekRange(0)
   const nextWeek = weekRange(1)
   const todayDate = todayIso()
@@ -34,7 +36,7 @@ export function Plan() {
     if (!taskTitle.trim() || !taskDate || taskDate < currentWeek.start || taskDate > nextWeek.end) return
     addTask({
       title: taskTitle,
-      subject: taskSubject,
+      subject: safeTaskSubject,
       minutes: taskMinutes,
       day: selectedTaskDay,
       slot: taskSlot,
@@ -81,6 +83,7 @@ export function Plan() {
               weekOffset={0}
               todayDay={todayDay}
               timeSlots={timeSlots}
+              subjects={subjects}
               updateTask={updateTask}
               deleteTask={deleteTask}
               toggleTask={toggleTask}
@@ -98,6 +101,7 @@ export function Plan() {
                 weekOffset={1}
                 todayDay={todayDay}
                 timeSlots={timeSlots}
+                subjects={subjects}
                 updateTask={updateTask}
                 deleteTask={deleteTask}
                 toggleTask={toggleTask}
@@ -115,7 +119,7 @@ export function Plan() {
                 <Select value={taskSlot} onChange={(event) => setTaskSlot(event.target.value as TimeSlot)}>{timeSlots.map((slot) => <option key={slot}>{slot}</option>)}</Select>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <Select value={taskSubject} onChange={(event) => setTaskSubject(event.target.value as Subject)}>{subjects.map((subject) => <option key={subject}>{subject}</option>)}</Select>
+                <Select value={safeTaskSubject} onChange={(event) => setTaskSubject(event.target.value as Subject)}>{subjects.map((subject) => <option key={subject}>{subject}</option>)}</Select>
                 <TextInput type="number" min={1} value={taskMinutes} onChange={(event) => setTaskMinutes(Number(event.target.value))} />
               </div>
               <Panel className="bg-blue-50 text-blue-800 ring-blue-100">
@@ -179,13 +183,15 @@ export function Plan() {
   )
 }
 
-function PlanTaskCard({ task, updateTask, deleteTask, toggleTask }: { task: Task; updateTask: ReturnType<typeof useStudyStore.getState>['updateTask']; deleteTask: ReturnType<typeof useStudyStore.getState>['deleteTask']; toggleTask: ReturnType<typeof useStudyStore.getState>['toggleTask'] }) {
+function PlanTaskCard({ task, subjects, updateTask, deleteTask, toggleTask }: { task: Task; subjects: Subject[]; updateTask: ReturnType<typeof useStudyStore.getState>['updateTask']; deleteTask: ReturnType<typeof useStudyStore.getState>['deleteTask']; toggleTask: ReturnType<typeof useStudyStore.getState>['toggleTask'] }) {
+  const taskSubjects = subjectOptions([...subjects, task.subject])
+
   return (
     <div className="mb-2 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/70 transition hover:ring-blue-200">
       <TextInput value={task.title} onChange={(event) => updateTask(task.id, { title: event.target.value })} className="mb-2 h-8 w-full border-transparent bg-slate-50 font-medium hover:border-slate-200" />
       <div className="flex flex-wrap gap-2">
         <Select value={task.subject} onChange={(event) => updateTask(task.id, { subject: event.target.value as Subject })} className="h-8 flex-1">
-          {subjects.map((subject) => <option key={subject}>{subject}</option>)}
+          {taskSubjects.map((subject) => <option key={subject}>{subject}</option>)}
         </Select>
         <TextInput type="number" min={1} value={task.minutes} onChange={(event) => updateTask(task.id, { minutes: Number(event.target.value) })} className="h-8 w-20" />
       </div>
@@ -224,6 +230,7 @@ function WeekPlanBoard({
   weekOffset,
   todayDay,
   timeSlots,
+  subjects,
   updateTask,
   deleteTask,
   toggleTask,
@@ -232,6 +239,7 @@ function WeekPlanBoard({
   weekOffset: number
   todayDay: DayName
   timeSlots: TimeSlot[]
+  subjects: Subject[]
   updateTask: ReturnType<typeof useStudyStore.getState>['updateTask']
   deleteTask: ReturnType<typeof useStudyStore.getState>['deleteTask']
   toggleTask: ReturnType<typeof useStudyStore.getState>['toggleTask']
@@ -265,7 +273,7 @@ function WeekPlanBoard({
                     {cellTasks.length === 0 ? (
                       <p className="rounded-lg bg-slate-50 px-3 py-3 text-center text-xs text-slate-400">暂无任务</p>
                     ) : cellTasks.map((task) => (
-                      <PlanTaskCard key={task.id} task={task} updateTask={updateTask} deleteTask={deleteTask} toggleTask={toggleTask} />
+                      <PlanTaskCard key={task.id} task={task} subjects={subjects} updateTask={updateTask} deleteTask={deleteTask} toggleTask={toggleTask} />
                     ))}
                   </div>
                 )

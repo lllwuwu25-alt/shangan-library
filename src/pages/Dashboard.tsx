@@ -1,4 +1,5 @@
 import { ArrowRight, CheckCircle2, Clock, Database, Flame, HardDrive, TimerReset } from 'lucide-react'
+import { defaultSubjects, subjectOptions } from '../constants'
 import { currentDayName, daysUntil, isoForCurrentWeekDay, todayIso, weekRange } from '../lib/date'
 import { useStudyStore } from '../store/useStudyStore'
 import { Card, EmptyState, GhostButton, Panel, Pill, SectionTitle, StatCard } from '../components/ui'
@@ -21,7 +22,8 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
   const countdown = daysUntil(settings.examDate)
   const examName = settings.examName || '考试'
   const countdownText = countdown === null ? '未设置' : `${countdown} 天`
-  const subjectProgress = ['英语', '政治', '数学', '专业课'].map((subject) => {
+  const subjects = subjectOptions([...settings.subjects, ...tasks.map((task) => task.subject)])
+  const subjectProgress = (subjects.length ? subjects : defaultSubjects).map((subject) => {
     const subjectTasks = tasks.filter((task) => task.subject === subject)
     const doneCount = subjectTasks.filter((task) => task.status === 'done').length
     return { subject, value: subjectTasks.length ? Math.round((doneCount / subjectTasks.length) * 100) : 0 }

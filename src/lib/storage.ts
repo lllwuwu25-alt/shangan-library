@@ -1,5 +1,5 @@
 import { initialData } from '../data/initialData'
-import { defaultTimeSlots } from '../constants'
+import { defaultSubjects, defaultTimeSlots } from '../constants'
 import { dayNameFromIso, isoForCurrentWeekDay, todayIso } from './date'
 import type { AppData, DayName, Mistake, ResourceItem, Settings, Subject, Task, TimeSlot, WeeklyPlanItem } from '../types'
 
@@ -10,10 +10,16 @@ const normalizeTimeSlots = (value: unknown): TimeSlot[] => {
   const slots = value.map((item) => String(item).trim()).filter(Boolean)
   return slots.length ? Array.from(new Set(slots)) : defaultTimeSlots
 }
+const normalizeSubjects = (value: unknown): Subject[] => {
+  if (!Array.isArray(value)) return defaultSubjects
+  const subjects = value.map((item) => String(item).trim()).filter(Boolean)
+  return subjects.length ? Array.from(new Set(subjects)) : defaultSubjects
+}
 
 const normalizeSettings = (settings?: Partial<Settings>): Settings => ({
   ...initialData.settings,
   ...settings,
+  subjects: normalizeSubjects(settings?.subjects),
   timeSlots: normalizeTimeSlots(settings?.timeSlots),
   backupReminderDays: Math.max(1, Number(settings?.backupReminderDays ?? initialData.settings.backupReminderDays)),
   theme: settings?.theme === 'dark' || settings?.theme === 'system' ? settings.theme : 'light',

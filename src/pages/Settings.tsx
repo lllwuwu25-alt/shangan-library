@@ -1,16 +1,18 @@
-import { Bell, Database, Download, HardDrive, Moon, RotateCcw, ShieldCheck, SunMedium, Upload } from 'lucide-react'
+import { Bell, Database, Download, HardDrive, Moon, Plus, RotateCcw, ShieldCheck, SunMedium, Trash2, Upload } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useRef, useState } from 'react'
 import { PageHeader } from '../components/Layout'
 import { Button, Card, DangerButton, GhostButton, Panel, SectionTitle, Select, TextInput } from '../components/ui'
+import { defaultResourceCategories, defaultSubjects, subjectOptions } from '../constants'
 import { STORAGE_KEY } from '../lib/storage'
 import { useStudyStore } from '../store/useStudyStore'
-import type { AppData, ThemeMode } from '../types'
+import type { AppData, Subject, ThemeMode } from '../types'
 
 export function Settings() {
   const store = useStudyStore()
   const fileRef = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState('')
+  const [newSubject, setNewSubject] = useState('')
 
   const data: AppData = {
     tasks: store.tasks,
@@ -22,6 +24,33 @@ export function Settings() {
   const storageBytes = getLocalStorageBytes()
   const lastBackupText = store.settings.lastBackupAt ? formatDateTime(store.settings.lastBackupAt) : '从未备份'
   const reminderStatus = getBackupReminderStatus(store.settings.lastBackupAt, store.settings.backupReminderDays)
+  const subjects = subjectOptions([...store.settings.subjects, ...getUsedSubjects(data)])
+
+  const addSubject = () => {
+    const name = newSubject.trim()
+    if (!name) return
+    if (subjects.includes(name)) {
+      setMessage('这个科目已经存在。')
+      return
+    }
+    store.updateSettings({ subjects: [...subjects, name] })
+    setNewSubject('')
+    setMessage(`已新增科目：${name}`)
+  }
+
+  const removeSubject = (subject: Subject) => {
+    const usageCount = getSubjectUsageCount(subject, data)
+    if (usageCount > 0) {
+      setMessage(`「${subject}」已被 ${usageCount} 条数据使用，暂不能删除。`)
+      return
+    }
+    if (subjects.length <= 1) {
+      setMessage('至少保留一个科目。')
+      return
+    }
+    store.updateSettings({ subjects: subjects.filter((item) => item !== subject) })
+    setMessage(`已删除科目：${subject}`)
+  }
 
   const exportBackup = () => {
     const backedUpAt = new Date().toISOString()
@@ -126,6 +155,45 @@ export function Settings() {
                 考试日期
                 <TextInput type="date" value={store.settings.examDate} onChange={(event) => store.updateSettings({ examDate: event.target.value })} />
               </label>
+            </div>
+          </Card>
+
+          <Card>
+            <SectionTitle title="科目管理" caption="按自己的考试科目添加，例如法硕、计算机、会计、教资、行测、申论。" />
+            <div className="grid gap-4">
+              <div className="flex gap-2">
+                <TextInput
+                  placeholder="输入新科目"
+                  value={newSubject}
+                  onChange={(event) => setNewSubject(event.target.value)}
+                  onKeyDown={(event) => { if (event.key === 'Enter') addSubject() }}
+                />
+                <Button type="button" onClick={addSubject}><Plus size={16} />添加</Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {subjects.map((subject) => {
+                  const usageCount = getSubjectUsageCount(subject, data)
+                  return (
+                    <span key={subject} className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-2.5 py-1 text-sm font-medium text-slate-700 ring-1 ring-slate-200">
+                      {subject}
+                      {usageCount > 0 && <span className="text-xs font-normal text-slate-500">{usageCount} 条</span>}
+                      <button
+                        type="button"
+                        disabled={usageCount > 0 || subjects.length <= 1}
+                        onClick={() => removeSubject(subject)}
+                        title={usageCount > 0 ? '已有数据使用该科目，暂不能删除' : '删除科目'}
+                        className="flex size-6 items-center justify-center rounded-full text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
+              <Panel>
+                <p className="text-xs leading-5 text-slate-500">科目会同步到学习计划、错题本和资料库的科目分类。已有数据使用中的科目会锁定，避免误删后找不到记录。</p>
+              </Panel>
+              <GhostButton type="button" className="w-fit" onClick={() => store.updateSettings({ subjects: subjectOptions([...defaultSubjects, ...getUsedSubjects(data)]) })}>恢复默认科目</GhostButton>
             </div>
           </Card>
         </div>
@@ -249,4 +317,18 @@ function getBackupReminderStatus(lastBackupAt: string | undefined, reminderDays:
   }
 
   return { isDue: false, text: `备份状态良好，距离下次提醒还有 ${reminderDays - elapsedDays} 天。` }
+}
+
+function getSubjectUsageCount(subject: Subject, data: AppData) {
+  return data.tasks.filter((task) => task.subject === subject).length
+    + data.mistakes.filter((mistake) => mistake.subject === subject).length
+    + data.resources.filter((resource) => resource.category === subject).length
+}
+
+function getUsedSubjects(data: AppData) {
+  return [
+    ...data.tasks.map((task) => task.subject),
+    ...data.mistakes.map((mistake) => mistake.subject),
+    ...data.resources.map((resource) => resource.category).filter((category) => !defaultResourceCategories.includes(category)),
+  ]
 }
