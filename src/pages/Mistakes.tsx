@@ -48,7 +48,7 @@ export function Mistakes() {
         <Stat label="黄色巩固" value={mistakes.filter((item) => item.importance === '黄').length} />
         <Stat label="绿色普通" value={mistakes.filter((item) => item.importance === '绿').length} />
       </div>
-      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="mt-5 grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card>
           <SectionTitle title="错题列表" caption={`${filtered.length} / ${mistakes.length} 条错题`} />
           <div className="mb-4 grid gap-3 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200/70 md:grid-cols-[minmax(0,1fr)_160px_160px]">
@@ -69,17 +69,17 @@ export function Mistakes() {
           <div className="space-y-3">
             {filtered.length === 0 ? <EmptyState text="没有匹配的错题。" /> : filtered.map((item) => (
               <div key={item.id} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200/60 transition hover:bg-white hover:shadow-card">
-                <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <Select value={item.subject} onChange={(event) => updateMistake(item.id, { subject: event.target.value as Subject })}>{subjects.map((item) => <option key={item}>{item}</option>)}</Select>
-                  <Select value={item.importance} onChange={(event) => updateMistake(item.id, { importance: event.target.value as MistakeImportance })}>
+                <div className="mb-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_96px_auto_auto_auto] lg:items-center">
+                  <Select className="min-w-0" value={item.subject} onChange={(event) => updateMistake(item.id, { subject: event.target.value as Subject })}>{subjects.map((item) => <option key={item}>{item}</option>)}</Select>
+                  <Select className="min-w-0" value={item.importance} onChange={(event) => updateMistake(item.id, { importance: event.target.value as MistakeImportance })}>
                     <option>红</option>
                     <option>黄</option>
                     <option>绿</option>
                   </Select>
                   <ImportancePill importance={item.importance} />
                   <Pill tone={item.status === '已掌握' ? 'green' : 'amber'}>{item.status}</Pill>
-                  <span className="rounded-full bg-white px-2 py-1 text-xs text-slate-500 ring-1 ring-slate-200">{item.attachments.length} 个文件</span>
-                  <span className="text-xs text-slate-500">{item.createdAt}</span>
+                  <span className="max-w-full rounded-full bg-white px-2 py-1 text-xs text-slate-500 ring-1 ring-slate-200"><span className="block truncate">{item.attachments.length} 个文件</span></span>
+                  <span className="break-all text-xs leading-5 text-slate-500 sm:col-span-2 lg:col-span-5">{item.createdAt}</span>
                 </div>
                 <div className="grid gap-3">
                   <TextArea value={item.question} onChange={(event) => updateMistake(item.id, { question: event.target.value })} />
@@ -87,9 +87,9 @@ export function Mistakes() {
                   <TextInput value={item.note} onChange={(event) => updateMistake(item.id, { note: event.target.value })} />
                 </div>
                 <MistakeAttachments item={item} updateMistake={updateMistake} setPreviewFile={setPreviewFile} />
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <GhostButton onClick={() => toggleMistake(item.id)}>{item.status === '已掌握' ? '设为待复习' : '标记已掌握'}</GhostButton>
-                  <DangerButton onClick={() => deleteMistake(item.id)}><Trash2 size={15} />删除</DangerButton>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  <GhostButton className="w-full" onClick={() => toggleMistake(item.id)}>{item.status === '已掌握' ? '设为待复习' : '标记已掌握'}</GhostButton>
+                  <DangerButton className="w-full" onClick={() => deleteMistake(item.id)}><Trash2 size={15} />删除</DangerButton>
                 </div>
               </div>
             ))}
@@ -110,7 +110,7 @@ export function Mistakes() {
               <TextInput placeholder="复盘备注" value={note} onChange={(event) => setNote(event.target.value)} />
               <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-blue-200 bg-blue-50 px-3 py-5 text-center text-sm font-medium text-blue-700 transition hover:bg-blue-100">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><Upload size={17} /></span>
-                <span>上传题目截图 / PDF / Word / Excel 等文件</span>
+                <span className="text-wrap leading-5">上传题目截图 / PDF / Word / Excel 等文件</span>
                 <UploadHint>点击附件名可预览 Word / Excel / PDF / 图片</UploadHint>
                 <input type="file" multiple className="hidden" onChange={async (event) => {
                   if (!event.target.files) return
@@ -134,8 +134,8 @@ export function Mistakes() {
               </Select>
               <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-sm font-medium text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><FileStack size={17} /></span>
-                <span>批量选择错题文件</span>
-                <span className="text-xs font-normal text-slate-500">每个文件会生成一条待复习错题</span>
+                <span className="text-wrap leading-5">批量选择错题文件</span>
+                <span className="text-wrap text-xs font-normal leading-5 text-slate-500">每个文件会生成一条待复习错题</span>
                 <input type="file" multiple className="hidden" onChange={async (event) => {
                   if (!event.target.files?.length) return
                   const nextFiles = await filesToAttachments(event.target.files)
@@ -168,7 +168,7 @@ function ImportancePill({ importance }: { importance: MistakeImportance }) {
     黄: 'bg-amber-50 text-amber-800 ring-amber-100',
     绿: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
   }
-  return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${styles[importance]}`}>{importance}色等级</span>
+  return <span className={`inline-flex max-w-full items-center rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${styles[importance]}`}><span className="truncate">{importance}色等级</span></span>
 }
 
 function MistakeAttachments({
@@ -182,7 +182,7 @@ function MistakeAttachments({
 }) {
   return (
     <div className="mt-3">
-      <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+      <label className="inline-flex max-w-full cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
         <Paperclip size={15} />
         添加文件
         <input type="file" multiple className="hidden" onChange={async (event) => {
@@ -204,8 +204,8 @@ function MistakeAttachments({
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <Card>
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
+      <p className="break-words text-sm text-slate-500">{label}</p>
+      <p className="mt-1 break-words text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
     </Card>
   )
 }

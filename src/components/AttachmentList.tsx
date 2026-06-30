@@ -14,14 +14,14 @@ export function AttachmentList({ attachments, onRemove, onOpen, compact = false 
   if (attachments.length === 0) return null
 
   return (
-    <div className={compact ? 'mt-3 flex flex-wrap gap-2' : 'mt-3 grid gap-2'}>
+    <div className={compact ? 'mt-3 grid gap-2 sm:grid-cols-2' : 'mt-3 grid gap-2'}>
       {attachments.map((file) => {
         const previewable = isPreviewableFile(file) || isDocxFile(file) || isExcelFile(file)
 
         return (
           <div
             key={file.id}
-            className="flex min-w-0 items-center gap-2 rounded-2xl bg-white px-3 py-2 text-xs text-slate-600 ring-1 ring-slate-200"
+            className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-2xl bg-white px-3 py-2 text-xs text-slate-600 ring-1 ring-slate-200"
           >
             <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500">
               {previewable ? <Eye size={14} /> : <FileText size={14} />}
@@ -34,7 +34,7 @@ export function AttachmentList({ attachments, onRemove, onOpen, compact = false 
               title={previewable ? '预览文件' : '打开文件'}
             >
               <span className="block truncate font-medium text-slate-800 hover:text-blue-700">{file.name}</span>
-              <span className="mt-0.5 block text-slate-400">{formatFileSize(file.size)}</span>
+              <span className="mt-0.5 block truncate text-slate-400">{formatFileSize(file.size)}</span>
             </button>
             <a
               href={file.dataUrl}
@@ -64,7 +64,7 @@ export function AttachmentList({ attachments, onRemove, onOpen, compact = false 
 
 export function UploadHint({ children }: { children: ReactNode }) {
   return (
-    <span className="flex items-center gap-1 text-xs font-normal text-blue-600">
+    <span className="flex max-w-full items-center justify-center gap-1 text-wrap text-xs font-normal leading-5 text-blue-600">
       <Paperclip size={12} />
       {children}
     </span>

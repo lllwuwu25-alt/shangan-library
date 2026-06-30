@@ -92,16 +92,16 @@ export function Settings() {
   return (
     <>
       <PageHeader title="设置" description="管理考试信息、数据安全、备份恢复和界面主题。" />
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-5">
           <Card>
             <SectionTitle title="数据安全中心" caption="把导入导出包装成更直观的备份和恢复流程。" />
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
               <div className="rounded-2xl bg-slate-950 p-5 text-white">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm text-slate-300">本地存储状态</p>
-                    <h2 className="mt-1 text-2xl font-semibold tracking-tight">{storageBytes > 0 ? '运行正常' : '等待写入数据'}</h2>
+                    <h2 className="mt-1 break-words text-2xl font-semibold tracking-tight">{storageBytes > 0 ? '运行正常' : '等待写入数据'}</h2>
                     <p className="mt-2 text-sm leading-6 text-slate-300">所有数据保存在当前设备。建议定期备份，换电脑或清理浏览器数据前先导出备份文件。</p>
                   </div>
                   <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-white/10">
@@ -161,21 +161,21 @@ export function Settings() {
           <Card>
             <SectionTitle title="科目管理" caption="按自己的考试科目添加，例如法硕、计算机、会计、教资、行测、申论。" />
             <div className="grid gap-4">
-              <div className="flex gap-2">
+              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                 <TextInput
                   placeholder="输入新科目"
                   value={newSubject}
                   onChange={(event) => setNewSubject(event.target.value)}
                   onKeyDown={(event) => { if (event.key === 'Enter') addSubject() }}
                 />
-                <Button type="button" onClick={addSubject}><Plus size={16} />添加</Button>
+                <Button className="w-full sm:w-auto" type="button" onClick={addSubject}><Plus size={16} />添加</Button>
               </div>
               <div className="flex flex-wrap gap-2">
                 {subjects.map((subject) => {
                   const usageCount = getSubjectUsageCount(subject, data)
                   return (
-                    <span key={subject} className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-2.5 py-1 text-sm font-medium text-slate-700 ring-1 ring-slate-200">
-                      {subject}
+                    <span key={subject} className="inline-flex max-w-full items-center gap-2 rounded-full bg-slate-50 px-2.5 py-1 text-sm font-medium text-slate-700 ring-1 ring-slate-200">
+                      <span className="truncate">{subject}</span>
                       {usageCount > 0 && <span className="text-xs font-normal text-slate-500">{usageCount} 条</span>}
                       <button
                         type="button"
@@ -193,7 +193,7 @@ export function Settings() {
               <Panel>
                 <p className="text-xs leading-5 text-slate-500">科目会同步到学习计划、错题本和资料库的科目分类。已有数据使用中的科目会锁定，避免误删后找不到记录。</p>
               </Panel>
-              <GhostButton type="button" className="w-fit" onClick={() => store.updateSettings({ subjects: subjectOptions([...defaultSubjects, ...getUsedSubjects(data)]) })}>恢复默认科目</GhostButton>
+              <GhostButton type="button" className="w-full sm:w-fit" onClick={() => store.updateSettings({ subjects: subjectOptions([...defaultSubjects, ...getUsedSubjects(data)]) })}>恢复默认科目</GhostButton>
             </div>
           </Card>
         </div>
@@ -257,7 +257,7 @@ export function Settings() {
           ].map((text) => (
             <div key={text} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200/70">
               <HardDrive size={17} className="mb-2 text-emerald-600" />
-              <p>{text}</p>
+              <p className="break-words">{text}</p>
             </div>
           ))}
         </div>
@@ -269,8 +269,8 @@ export function Settings() {
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-white/8 px-3 py-2 ring-1 ring-white/10">
-      <p className="text-xs text-slate-300">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-white">{value}</p>
+      <p className="break-words text-xs text-slate-300">{label}</p>
+      <p className="mt-1 break-words text-lg font-semibold text-white">{value}</p>
     </div>
   )
 }
@@ -279,8 +279,8 @@ function StorageStat({ icon, label, value }: { icon: ReactNode; label: string; v
   return (
     <Panel>
       <div className="mb-2 flex size-8 items-center justify-center rounded-xl bg-blue-50 text-blue-700">{icon}</div>
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-slate-950">{value}</p>
+      <p className="break-words text-xs text-slate-500">{label}</p>
+      <p className="mt-1 break-words text-lg font-semibold text-slate-950">{value}</p>
     </Panel>
   )
 }

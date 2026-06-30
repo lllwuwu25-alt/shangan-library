@@ -20,6 +20,10 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-wrap: anywhere;
+}
+
 body {
   min-width: 320px;
   min-height: 100vh;
@@ -133,6 +137,7 @@ button,
 input,
 select,
 textarea {
+  min-width: 0;
   font: inherit;
 }
 

@@ -70,13 +70,13 @@ export function Plan() {
   return (
     <>
       <PageHeader title="学习计划" description="按日期新增计划，本周默认展示，下周可展开查看。" />
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-5">
           <Card className="p-4 sm:p-5">
             <SectionTitle
               title="本周学习计划表"
               caption={`仅显示本周日期内任务，今日任务会同步到首页。${currentWeek.start} 至 ${currentWeek.end}`}
-              action={<DangerButton onClick={clearCurrentWeekTasks} disabled={currentWeekTasks.length === 0}><Trash2 size={15} />清除本周计划</DangerButton>}
+              action={<DangerButton className="w-full sm:w-auto" onClick={clearCurrentWeekTasks} disabled={currentWeekTasks.length === 0}><Trash2 size={15} />清除本周计划</DangerButton>}
             />
             <WeekPlanBoard
               tasks={currentWeekTasks}
@@ -93,7 +93,7 @@ export function Plan() {
             <SectionTitle
               title="下周计划安排"
               caption={`提前安排下周任务；到下周会自动进入本周计划。${nextWeek.start} 至 ${nextWeek.end} · ${nextWeekTasks.length} 个任务`}
-              action={<GhostButton type="button" onClick={() => setShowNextWeek((value) => !value)}>{showNextWeek ? '收起下周计划' : '展开下周计划'}</GhostButton>}
+              action={<GhostButton className="w-full sm:w-auto" type="button" onClick={() => setShowNextWeek((value) => !value)}>{showNextWeek ? '收起下周计划' : '展开下周计划'}</GhostButton>}
             />
             {showNextWeek && (
               <WeekPlanBoard
@@ -114,16 +114,16 @@ export function Plan() {
             <SectionTitle title="新增计划" caption="选择本周或下周日期，任务会进入对应计划表。" />
             <div className="grid gap-3">
               <TextInput placeholder="任务名称" value={taskTitle} onChange={(event) => setTaskTitle(event.target.value)} />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <TextInput type="date" min={currentWeek.start} max={nextWeek.end} value={taskDate} onChange={(event) => setTaskDate(event.target.value)} />
                 <Select value={taskSlot} onChange={(event) => setTaskSlot(event.target.value as TimeSlot)}>{timeSlots.map((slot) => <option key={slot}>{slot}</option>)}</Select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <Select value={safeTaskSubject} onChange={(event) => setTaskSubject(event.target.value as Subject)}>{subjects.map((subject) => <option key={subject}>{subject}</option>)}</Select>
                 <TextInput type="number" min={1} value={taskMinutes} onChange={(event) => setTaskMinutes(Number(event.target.value))} />
               </div>
               <Panel className="bg-blue-50 text-blue-800 ring-blue-100">
-                <p className="text-xs">将写入 <b>{taskDate}</b> · <b>{selectedTaskDay}</b> · <b>{taskSlot}</b>。</p>
+                <p className="break-words text-xs leading-5">将写入 <b>{taskDate}</b> · <b>{selectedTaskDay}</b> · <b>{taskSlot}</b>。</p>
               </Panel>
               <Button onClick={createTask}><Plus size={16} />新增任务</Button>
             </div>
@@ -145,9 +145,9 @@ export function Plan() {
           <Card>
             <SectionTitle title="学习时段管理" caption="预设早晨、上午、下午、晚上、睡前，也可以按自己的作息添加。" />
             <div className="grid gap-3">
-              <div className="flex gap-2">
+              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                 <TextInput placeholder="例如 午休 / 通勤" value={newSlot} onChange={(event) => setNewSlot(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') addTimeSlot() }} />
-                <Button type="button" onClick={addTimeSlot}><Plus size={16} />添加</Button>
+                <Button className="w-full sm:w-auto" type="button" onClick={addTimeSlot}><Plus size={16} />添加</Button>
               </div>
               <div className="flex flex-wrap gap-2">
                 {timeSlots.map((slot) => {
@@ -187,13 +187,13 @@ function PlanTaskCard({ task, subjects, updateTask, deleteTask, toggleTask }: { 
   const taskSubjects = subjectOptions([...subjects, task.subject])
 
   return (
-    <div className="mb-2 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/70 transition hover:ring-blue-200">
+    <div className="mb-2 min-w-0 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/70 transition hover:ring-blue-200">
       <TextInput value={task.title} onChange={(event) => updateTask(task.id, { title: event.target.value })} className="mb-2 h-8 w-full border-transparent bg-slate-50 font-medium hover:border-slate-200" />
-      <div className="flex flex-wrap gap-2">
-        <Select value={task.subject} onChange={(event) => updateTask(task.id, { subject: event.target.value as Subject })} className="h-8 flex-1">
+      <div className="grid grid-cols-[minmax(0,1fr)_76px] gap-2">
+        <Select value={task.subject} onChange={(event) => updateTask(task.id, { subject: event.target.value as Subject })} className="h-8 min-w-0">
           {taskSubjects.map((subject) => <option key={subject}>{subject}</option>)}
         </Select>
-        <TextInput type="number" min={1} value={task.minutes} onChange={(event) => updateTask(task.id, { minutes: Number(event.target.value) })} className="h-8 w-20" />
+        <TextInput type="number" min={1} value={task.minutes} onChange={(event) => updateTask(task.id, { minutes: Number(event.target.value) })} className="h-8 min-w-0" />
       </div>
       <div className="mt-2 grid gap-2">
         <span className={`inline-flex h-7 w-fit max-w-full items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 text-xs font-medium ring-1 ${task.status === 'done' ? 'bg-emerald-50 text-emerald-700 ring-emerald-100' : 'bg-blue-50 text-blue-700 ring-blue-100'}`}>
@@ -245,7 +245,7 @@ function WeekPlanBoard({
   toggleTask: ReturnType<typeof useStudyStore.getState>['toggleTask']
 }) {
   return (
-    <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
       {dayNames.map((day) => {
         const date = isoForWeekDay(day, weekOffset)
         const isToday = weekOffset === 0 && day === todayDay && date === todayIso()
@@ -265,9 +265,9 @@ function WeekPlanBoard({
               {timeSlots.map((slot) => {
                 const cellTasks = dayTasks.filter((task) => task.slot === slot)
                 return (
-                  <div key={`${date}-${slot}`} className="rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/70">
+                  <div key={`${date}-${slot}`} className="min-w-0 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-slate-200/70">
                     <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="text-xs font-medium text-slate-500">{slot}</p>
+                      <p className="min-w-0 truncate text-xs font-medium text-slate-500">{slot}</p>
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">{cellTasks.length}</span>
                     </div>
                     {cellTasks.length === 0 ? (
@@ -293,14 +293,14 @@ function TaskList({ title, tasks, deleteTask, toggleTask }: { title: string; tas
       <div className="space-y-3">
         {tasks.length === 0 ? <EmptyState text="暂无任务。" /> : tasks.map((task) => (
           <Panel key={task.id}>
-            <div className="mb-2 flex items-center justify-between gap-3">
-              <p className={`text-sm font-medium ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{task.title}</p>
-              <span className="rounded-full bg-white px-2 py-1 text-xs text-slate-500 ring-1 ring-slate-200">{task.slot}</span>
+            <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
+              <p className={`min-w-0 break-words text-sm font-medium ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{task.title}</p>
+              <span className="max-w-full rounded-full bg-white px-2 py-1 text-xs text-slate-500 ring-1 ring-slate-200"><span className="block truncate">{task.slot}</span></span>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-slate-500">{task.subject} · {task.minutes} 分钟 · {task.date}</span>
-              <GhostButton onClick={() => toggleTask(task.id)}>{task.status === 'done' ? '设为待办' : '标记完成'}</GhostButton>
-              <DangerButton onClick={() => deleteTask(task.id)}><Trash2 size={15} />删除</DangerButton>
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+              <span className="min-w-0 break-words text-xs leading-5 text-slate-500">{task.subject} · {task.minutes} 分钟 · {task.date}</span>
+              <GhostButton className="w-full sm:w-auto" onClick={() => toggleTask(task.id)}>{task.status === 'done' ? '设为待办' : '标记完成'}</GhostButton>
+              <DangerButton className="w-full sm:w-auto" onClick={() => deleteTask(task.id)}><Trash2 size={15} />删除</DangerButton>
             </div>
           </Panel>
         ))}

@@ -70,14 +70,14 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
           <SectionTitle title={`${todayDay} 今日任务`} action={<GhostButton onClick={() => go('/plan')}>管理计划</GhostButton>} />
           <div className="space-y-3">
             {todayTasks.length === 0 ? <EmptyState text="今天还没有任务，可以去学习计划中添加。" /> : todayTasks.map((task) => (
-              <div key={task.id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-3 py-3 ring-1 ring-slate-200/60 transition hover:bg-blue-50/70">
-                <button type="button" onClick={() => toggleTask(task.id)} className="flex min-w-0 items-center gap-3 text-left">
+              <div key={task.id} className="grid gap-3 rounded-xl bg-slate-50 px-3 py-3 ring-1 ring-slate-200/60 transition hover:bg-blue-50/70 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <button type="button" onClick={() => toggleTask(task.id)} className="flex min-w-0 items-start gap-3 text-left">
                   <span className={`flex size-5 shrink-0 items-center justify-center rounded-full border ${task.status === 'done' ? 'border-blue-600 bg-blue-600' : 'border-slate-300 bg-white'}`}>
                     {task.status === 'done' && <CheckCircle2 size={13} className="text-white" />}
                   </span>
                   <span className="min-w-0">
-                    <span className={`block truncate text-sm font-medium ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{task.title}</span>
-                    <span className="text-xs text-slate-500">{task.slot} · {task.subject} · {task.minutes} 分钟 · {task.date}</span>
+                    <span className={`block break-words text-sm font-medium ${task.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-900'}`}>{task.title}</span>
+                    <span className="mt-1 block break-words text-xs leading-5 text-slate-500">{task.slot} · {task.subject} · {task.minutes} 分钟 · {task.date}</span>
                   </span>
                 </button>
                 <Pill tone={task.status === 'done' ? 'green' : 'blue'}>{task.status === 'done' ? '已完成' : '待完成'}</Pill>
@@ -124,7 +124,7 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
                 <div key={month.key} className="rounded-2xl bg-white p-3 ring-1 ring-slate-200/70">
                   <div className="mb-3 flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-slate-900">{month.label}</p>
-                    <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-500">{month.activeDays} 天活跃</span>
+                    <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-500">{month.activeDays} 天活跃</span>
                   </div>
                   <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[10px] text-slate-400">
                     {['一', '二', '三', '四', '五', '六', '日'].map((day) => <span key={day}>{day}</span>)}
@@ -143,7 +143,7 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
                 </div>
               ))}
               <div className="lg:col-span-3">
-                <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+                <div className="flex flex-wrap items-center justify-between gap-3 text-xs leading-5 text-slate-500">
                   <span>近 3 个自然月活跃 {activeDays} 天</span>
                   <div className="flex items-center gap-1">
                     <span>少</span>

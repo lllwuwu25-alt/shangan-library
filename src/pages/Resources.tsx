@@ -35,7 +35,7 @@ export function Resources() {
   return (
     <>
       <PageHeader title="资料库" description="把真题、笔记、模板和科目资料放在一个本地索引里，方便检索和复盘。" />
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card>
           <SectionTitle title="资料列表" caption={`${filtered.length} / ${resources.length} 份资料`} />
           <div className="mb-4 flex flex-col gap-3 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200/70 md:flex-row md:items-center">
@@ -43,33 +43,33 @@ export function Resources() {
               <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
               <TextInput value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索资料标题或描述" className="w-full pl-9" />
             </div>
-            <Select value={category} onChange={(event) => setCategory(event.target.value as '全部' | ResourceCategory)}>
+            <Select className="w-full md:w-44" value={category} onChange={(event) => setCategory(event.target.value as '全部' | ResourceCategory)}>
               {resourceCategories.map((item) => <option key={item}>{item}</option>)}
             </Select>
           </div>
           <div className="space-y-3">
             {filtered.length === 0 ? <EmptyState text="没有匹配的资料。" /> : filtered.map((item) => (
               <div key={item.id} className="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200/60 transition hover:bg-white hover:shadow-card">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-start">
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2">
                       <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><FileText size={16} /></div>
-                      <TextInput value={item.title} onChange={(event) => updateResource(item.id, { title: event.target.value })} className="h-8 w-full max-w-md bg-white" />
+                      <TextInput value={item.title} onChange={(event) => updateResource(item.id, { title: event.target.value })} className="h-8 min-w-0 bg-white" />
                     </div>
                     <TextArea value={item.description} onChange={(event) => updateResource(item.id, { description: event.target.value })} className="mt-3 w-full" />
                     <ResourceAttachments item={item} updateResource={updateResource} openResource={openResource} setPreviewFile={setPreviewFile} />
                   </div>
-                  <div className="flex shrink-0 flex-wrap gap-2 md:justify-end">
-                    <Select value={item.category} onChange={(event) => updateResource(item.id, { category: event.target.value as ResourceCategory })}>{writableCategories.map((item) => <option key={item}>{item}</option>)}</Select>
-                    <GhostButton onClick={() => openResource(item.id)}>标记打开</GhostButton>
-                    <DangerButton onClick={() => deleteResource(item.id)}><Trash2 size={15} />删除</DangerButton>
+                  <div className="grid gap-2 sm:grid-cols-3 xl:w-40 xl:grid-cols-1">
+                    <Select className="w-full" value={item.category} onChange={(event) => updateResource(item.id, { category: event.target.value as ResourceCategory })}>{writableCategories.map((item) => <option key={item}>{item}</option>)}</Select>
+                    <GhostButton className="w-full" onClick={() => openResource(item.id)}>标记打开</GhostButton>
+                    <DangerButton className="w-full" onClick={() => deleteResource(item.id)}><Trash2 size={15} />删除</DangerButton>
                   </div>
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <div className="mt-3 flex flex-wrap items-center gap-2 break-words text-xs leading-5 text-slate-500">
                   <Pill tone="blue">{item.category}</Pill>
                   <span className="rounded-full bg-white px-2 py-1 ring-1 ring-slate-200">{item.attachments.length} 个文件</span>
-                  <span>添加：{item.addedAt}</span>
-                  {item.lastOpenedAt && <span>最近打开：{item.lastOpenedAt}</span>}
+                  <span className="break-all">添加：{item.addedAt}</span>
+                  {item.lastOpenedAt && <span className="break-all">最近打开：{item.lastOpenedAt}</span>}
                 </div>
               </div>
             ))}
@@ -84,7 +84,7 @@ export function Resources() {
               <TextArea placeholder="简短描述或本地路径备注" value={description} onChange={(event) => setDescription(event.target.value)} />
               <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-blue-200 bg-blue-50 px-3 py-5 text-center text-sm font-medium text-blue-700 transition hover:bg-blue-100">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><Upload size={17} /></span>
-                <span>上传 Word / Excel / PDF / 图片等文件</span>
+                <span className="text-wrap leading-5">上传 Word / Excel / PDF / 图片等文件</span>
                 <UploadHint>支持多选，点击文件名可直接预览 Word / Excel / PDF / 图片</UploadHint>
                 <input type="file" multiple className="hidden" onChange={async (event) => {
                   if (!event.target.files) return
@@ -103,8 +103,8 @@ export function Resources() {
               <Select value={safeBatchCategory} onChange={(event) => setBatchCategory(event.target.value as ResourceCategory)}>{writableCategories.map((item) => <option key={item}>{item}</option>)}</Select>
               <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-sm font-medium text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700">
                 <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><FileStack size={17} /></span>
-                <span>批量选择文件并导入</span>
-                <span className="text-xs font-normal text-slate-500">每个文件会生成一条资料，标题取文件名</span>
+                <span className="text-wrap leading-5">批量选择文件并导入</span>
+                <span className="text-wrap text-xs font-normal leading-5 text-slate-500">每个文件会生成一条资料，标题取文件名</span>
                 <input type="file" multiple className="hidden" onChange={async (event) => {
                   if (!event.target.files?.length) return
                   const nextFiles = await filesToAttachments(event.target.files)
@@ -126,8 +126,8 @@ export function Resources() {
             <div className="space-y-3">
               {recent.length === 0 ? <EmptyState text="还没有打开记录。" /> : recent.map((item) => (
                 <button key={item.id} type="button" onClick={() => openResource(item.id)} className="block w-full rounded-xl bg-slate-50 p-3 text-left transition hover:bg-blue-50">
-                  <span className="block text-sm font-medium text-slate-900">{item.title}</span>
-                  <span className="mt-1 block text-xs text-slate-500">{item.category} · {item.lastOpenedAt}</span>
+                  <span className="block break-words text-sm font-medium text-slate-900">{item.title}</span>
+                  <span className="mt-1 block break-words text-xs leading-5 text-slate-500">{item.category} · {item.lastOpenedAt}</span>
                 </button>
               ))}
             </div>
@@ -152,7 +152,7 @@ function ResourceAttachments({
 }) {
   return (
     <div className="mt-3">
-      <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+      <label className="inline-flex max-w-full cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
         <Paperclip size={15} />
         添加文件
         <input type="file" multiple className="hidden" onChange={async (event) => {
