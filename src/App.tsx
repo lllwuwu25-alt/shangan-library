@@ -9,13 +9,23 @@ import { Settings } from './pages/Settings'
 import { useStudyStore } from './store/useStudyStore'
 
 const routes = ['/dashboard', '/plan', '/resources', '/mistakes', '/settings', '/contact']
+const basePath = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL.slice(0, -1) : import.meta.env.BASE_URL
+
+function toAppPath(pathname: string) {
+  const withoutBase = basePath && pathname.startsWith(basePath) ? pathname.slice(basePath.length) || '/' : pathname
+  return withoutBase === '/' ? '/dashboard' : withoutBase
+}
+
+function toBrowserPath(path: string) {
+  return `${basePath}${path}`
+}
 
 function App() {
   const theme = useStudyStore((state) => state.settings.theme)
-  const [path, setPath] = useState(() => (window.location.pathname === '/' ? '/dashboard' : window.location.pathname))
+  const [path, setPath] = useState(() => toAppPath(window.location.pathname))
 
   useEffect(() => {
-    const onPop = () => setPath(window.location.pathname === '/' ? '/dashboard' : window.location.pathname)
+    const onPop = () => setPath(toAppPath(window.location.pathname))
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [])
@@ -32,7 +42,7 @@ function App() {
   }, [theme])
 
   const navigate = (nextPath: string) => {
-    window.history.pushState(null, '', nextPath)
+    window.history.pushState(null, '', toBrowserPath(nextPath))
     setPath(nextPath)
   }
 

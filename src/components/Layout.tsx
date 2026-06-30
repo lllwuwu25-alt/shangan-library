@@ -49,27 +49,36 @@ export function Layout({ path, onNavigate, children }: { path: string; onNavigat
         </div>
       </aside>
       <div className="lg:pl-72">
-        <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/85 px-4 py-3 backdrop-blur lg:hidden">
-          <div className="mb-3 flex items-center justify-between">
+        <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur lg:hidden">
+          <div className="flex items-center justify-between">
             <div>
               <p className="font-semibold text-slate-950">上岸资料库</p>
               <p className="text-xs text-slate-500">本地个人学习系统</p>
             </div>
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {navItems.map((item) => (
-              <button
-                key={item.path}
-                type="button"
-                onClick={() => onNavigate(item.path)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-sm ${path === item.path ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700'}`}
-              >
-                {item.label}
-              </button>
-            ))}
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100">本地优先</span>
           </div>
         </header>
-        <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
+        <main className="mx-auto max-w-7xl px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
+        <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur lg:hidden">
+          <div className="mx-auto grid max-w-3xl grid-cols-6 gap-1">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const active = path === item.path
+              return (
+                <button
+                  key={item.path}
+                  type="button"
+                  onClick={() => onNavigate(item.path)}
+                  aria-current={active ? 'page' : undefined}
+                  className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-medium transition focus:outline-none focus:ring-2 focus:ring-blue-200 ${active ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'}`}
+                >
+                  <Icon size={19} />
+                  <span className="max-w-full truncate">{item.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        </nav>
       </div>
     </div>
   )

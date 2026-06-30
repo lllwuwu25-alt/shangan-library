@@ -1,0 +1,26 @@
+{
+  "name": "上岸资料库",
+  "short_name": "上岸资料库",
+  "description": "本地个人学习系统",
+  "start_url": "./dashboard",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
