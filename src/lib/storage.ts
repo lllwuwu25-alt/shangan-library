@@ -1,9 +1,9 @@
 import { initialData } from '../data/initialData'
 import { defaultSubjects, defaultTimeSlots } from '../constants'
 import { dayNameFromIso, isoForCurrentWeekDay, todayIso } from './date'
-import type { AppData, DayName, Mistake, ResourceItem, Settings, Subject, Task, TimeSlot, WeeklyPlanItem } from '../types'
+import type { AppData, DayName, Mistake, PomodoroSession, ResourceItem, Settings, Subject, Task, TimeSlot, WeeklyPlanItem } from '../types'
 
-export const STORAGE_KEY = 'shangan-library-data-v1'
+export const STORAGE_KEY = 'shangan-library-data-v2'
 const isDayName = (value: unknown): value is DayName => ['周一', '周二', '周三', '周四', '周五', '周六', '周日'].includes(String(value))
 const normalizeTimeSlots = (value: unknown): TimeSlot[] => {
   if (!Array.isArray(value)) return defaultTimeSlots
@@ -68,11 +68,20 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
     attachments: item.attachments ?? [],
   }))
 
+  const pomodoroSessions: PomodoroSession[] = (raw.pomodoroSessions ?? []).map((item) => ({
+    id: item.id ?? `pomo-${Date.now()}`,
+    title: item.title ?? '专注学习',
+    minutes: Number(item.minutes ?? 25),
+    mode: item.mode === '短休息' || item.mode === '长休息' ? item.mode : '专注',
+    completedAt: item.completedAt ?? new Date().toISOString(),
+  }))
+
   return {
     tasks: [...normalizedTasks, ...convertedPlanTasks],
     weeklyPlan: [],
     resources,
     mistakes,
+    pomodoroSessions,
     settings: normalizeSettings(raw.settings),
   }
 }

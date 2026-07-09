@@ -4,11 +4,12 @@ import { Dashboard } from './pages/Dashboard'
 import { Contact } from './pages/Contact'
 import { Mistakes } from './pages/Mistakes'
 import { Plan } from './pages/Plan'
+import { Pomodoro } from './pages/Pomodoro'
 import { Resources } from './pages/Resources'
 import { Settings } from './pages/Settings'
 import { useStudyStore } from './store/useStudyStore'
 
-const routes = ['/dashboard', '/plan', '/resources', '/mistakes', '/settings', '/contact']
+const routes = ['/dashboard', '/plan', '/pomodoro', '/resources', '/mistakes', '/settings', '/contact']
 const basePath = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL.slice(0, -1) : import.meta.env.BASE_URL
 
 function toAppPath(pathname: string) {
@@ -52,6 +53,7 @@ function App() {
     <Layout path={activePath} onNavigate={navigate}>
       {activePath === '/dashboard' && <Dashboard go={navigate} />}
       {activePath === '/plan' && <Plan />}
+      {activePath === '/pomodoro' && <Pomodoro />}
       {activePath === '/resources' && <Resources />}
       {activePath === '/mistakes' && <Mistakes />}
       {activePath === '/settings' && <Settings />}

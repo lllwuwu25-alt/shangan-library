@@ -1,6 +1,7 @@
 import { Download, Eye, FileText, Paperclip, X } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { formatFileSize, isDocxFile, isExcelFile, isPreviewableFile } from '../lib/files'
+import { downloadAttachmentFile, formatFileSize, isDocxFile, isExcelFile, isPreviewableFile } from '../lib/files'
+import { deleteAttachmentBlob } from '../lib/fileStorage'
 import type { FileAttachment } from '../types'
 
 type AttachmentListProps = {
@@ -36,18 +37,21 @@ export function AttachmentList({ attachments, onRemove, onOpen, compact = false 
               <span className="block truncate font-medium text-slate-800 hover:text-blue-700">{file.name}</span>
               <span className="mt-0.5 block truncate text-slate-400">{formatFileSize(file.size)}</span>
             </button>
-            <a
-              href={file.dataUrl}
-              download={file.name}
+            <button
+              type="button"
+              onClick={() => void downloadAttachmentFile(file)}
               className="flex size-8 shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-blue-50 hover:text-blue-700"
               title="下载"
             >
               <Download size={14} />
-            </a>
+            </button>
             {onRemove && (
               <button
                 type="button"
-                onClick={() => onRemove(file.id)}
+                onClick={() => {
+                  void deleteAttachmentBlob(file)
+                  onRemove(file.id)
+                }}
                 className="flex size-8 shrink-0 items-center justify-center rounded-xl text-red-500 transition hover:bg-red-50"
                 aria-label={`移除 ${file.name}`}
                 title="移除"

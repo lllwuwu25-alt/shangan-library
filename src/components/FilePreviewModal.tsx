@@ -1,6 +1,6 @@
 import { Download, FileText, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { dataUrlToArrayBuffer, formatFileSize, isDocxFile, isExcelFile, isLegacyWordFile } from '../lib/files'
+import { attachmentToArrayBufferSafe, attachmentToObjectUrlSafe, downloadAttachmentFile, formatFileSize, isDocxFile, isExcelFile, isLegacyWordFile } from '../lib/files'
 import type { FileAttachment } from '../types'
 
 type SheetPreview = {
@@ -17,6 +17,25 @@ export function FilePreviewModal({ file, onClose }: { file: FileAttachment; onCl
   const [activeSheet, setActiveSheet] = useState('')
   const [sheetError, setSheetError] = useState('')
   const [imageMode, setImageMode] = useState<PreviewMode>('fit')
+  const [objectUrl, setObjectUrl] = useState('')
+  const [loadError, setLoadError] = useState('')
+
+  useEffect(() => {
+    let objectUrlToRevoke = ''
+    setObjectUrl('')
+    setLoadError('')
+
+    attachmentToObjectUrlSafe(file)
+      .then((url) => {
+        objectUrlToRevoke = url
+        setObjectUrl(url)
+      })
+      .catch(() => setLoadError('文件正文未找到，请重新上传该附件。'))
+
+    return () => {
+      if (objectUrlToRevoke) URL.revokeObjectURL(objectUrlToRevoke)
+    }
+  }, [file])
 
   useEffect(() => {
     let cancelled = false
@@ -32,7 +51,7 @@ export function FilePreviewModal({ file, onClose }: { file: FileAttachment; onCl
       setDocxError('')
       try {
         const mammoth = await import('mammoth/mammoth.browser')
-        const arrayBuffer = await dataUrlToArrayBuffer(file.dataUrl)
+        const arrayBuffer = await attachmentToArrayBufferSafe(file)
         const result = await mammoth.convertToHtml({ arrayBuffer })
         if (!cancelled) setDocxHtml(result.value)
       } catch {
@@ -62,7 +81,7 @@ export function FilePreviewModal({ file, onClose }: { file: FileAttachment; onCl
       setSheetError('')
       try {
         const XLSX = await import('xlsx')
-        const arrayBuffer = await dataUrlToArrayBuffer(file.dataUrl)
+        const arrayBuffer = await attachmentToArrayBufferSafe(file)
         const workbook = XLSX.read(arrayBuffer, { type: 'array' })
         const nextSheets = workbook.SheetNames.map((name) => {
           const worksheet = workbook.Sheets[name]
@@ -93,11 +112,14 @@ export function FilePreviewModal({ file, onClose }: { file: FileAttachment; onCl
   }, [file])
 
   const body = (() => {
+    if (loadError) return <UnsupportedPreview file={file} message={loadError} />
+    if (!objectUrl) return <LoadingPreview text="正在读取文件..." />
+
     if (file.type.startsWith('image/')) {
       return (
         <div className="flex min-h-full items-start justify-center p-4">
           <img
-            src={file.dataUrl}
+            src={objectUrl}
             alt={file.name}
             className={imageMode === 'fit' ? 'max-h-full max-w-full object-contain' : 'max-w-none rounded-lg shadow-sm'}
           />
@@ -106,7 +128,7 @@ export function FilePreviewModal({ file, onClose }: { file: FileAttachment; onCl
     }
 
     if (file.type === 'application/pdf') {
-      return <iframe src={file.dataUrl} title={file.name} className="h-full min-h-[720px] w-full border-0 bg-white" />
+      return <iframe src={objectUrl} title={file.name} className="h-full min-h-[720px] w-full border-0 bg-white" />
     }
 
     if (isDocxFile(file)) {
@@ -126,13 +148,13 @@ export function FilePreviewModal({ file, onClose }: { file: FileAttachment; onCl
     }
 
     if (file.type.startsWith('text/')) {
-      return <iframe src={file.dataUrl} title={file.name} className="h-full min-h-[720px] w-full border-0 bg-white" />
+      return <iframe src={objectUrl} title={file.name} className="h-full min-h-[720px] w-full border-0 bg-white" />
     }
 
     if (file.type.startsWith('video/')) {
       return (
         <div className="grid min-h-full place-items-center p-4">
-          <video src={file.dataUrl} controls className="max-h-full max-w-full rounded-xl bg-black" />
+          <video src={objectUrl} controls className="max-h-full max-w-full rounded-xl bg-black" />
         </div>
       )
     }
@@ -140,7 +162,7 @@ export function FilePreviewModal({ file, onClose }: { file: FileAttachment; onCl
     if (file.type.startsWith('audio/')) {
       return (
         <div className="grid min-h-full place-items-center p-4">
-          <audio src={file.dataUrl} controls className="w-full max-w-xl" />
+          <audio src={objectUrl} controls className="w-full max-w-xl" />
         </div>
       )
     }
@@ -170,10 +192,10 @@ export function FilePreviewModal({ file, onClose }: { file: FileAttachment; onCl
                 {imageMode === 'fit' ? '原始大小' : '适应窗口'}
               </button>
             )}
-            <a href={file.dataUrl} download={file.name} className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+            <button type="button" onClick={() => void downloadAttachmentFile(file)} className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
               <Download size={15} />
               下载
-            </a>
+            </button>
             <button type="button" onClick={onClose} className="flex size-9 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900" aria-label="关闭预览">
               <X size={18} />
             </button>
@@ -237,10 +259,10 @@ function UnsupportedPreview({ file, message }: { file: FileAttachment; message: 
         </div>
         <h3 className="mt-4 break-words text-base font-semibold text-slate-950">{file.name}</h3>
         <p className="mt-2 text-sm leading-6 text-slate-500">{message}</p>
-        <a href={file.dataUrl} download={file.name} className="mt-4 inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700">
+        <button type="button" onClick={() => void downloadAttachmentFile(file)} className="mt-4 inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-medium text-white transition hover:bg-blue-700">
           <Download size={15} />
           下载文件
-        </a>
+        </button>
       </div>
     </div>
   )

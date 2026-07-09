@@ -14,4 +14,5 @@ export const initialData: AppData = {
   weeklyPlan: [],
   resources: [],
   mistakes: [],
+  pomodoroSessions: [],
 }

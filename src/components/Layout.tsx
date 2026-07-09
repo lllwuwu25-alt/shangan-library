@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 const navItems = [
   { path: '/dashboard', label: '首页总览', icon: Home },
   { path: '/plan', label: '学习计划', icon: CalendarDays },
+  { path: '/pomodoro', label: '番茄钟', icon: CalendarDays },
   { path: '/resources', label: '资料库', icon: Library },
   { path: '/mistakes', label: '错题本', icon: TriangleAlert },
   { path: '/settings', label: '设置', icon: Settings },
@@ -13,6 +14,7 @@ const navItems = [
 const mobileNavItems = [
   { path: '/dashboard', label: '首页', icon: Home },
   { path: '/plan', label: '计划', icon: CalendarDays },
+  { path: '/pomodoro', label: '番茄', icon: CalendarDays },
   { path: '/resources', label: '资料', icon: Library },
   { path: '/mistakes', label: '错题', icon: TriangleAlert },
 ]
@@ -79,7 +81,7 @@ export function Layout({ path, onNavigate, children }: { path: string; onNavigat
         </header>
         <main className="mx-auto max-w-7xl px-3 pb-20 pt-4 sm:px-5 md:px-6 lg:px-8 lg:py-8">{children}</main>
         <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 shadow-[0_-6px_18px_rgba(15,23,42,0.05)] backdrop-blur lg:hidden">
-          <div className="mx-auto grid max-w-md grid-cols-4 gap-1">
+          <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
             {mobileNavItems.map((item) => {
               const Icon = item.icon
               const active = path === item.path

@@ -19,6 +19,7 @@ export function Settings() {
     weeklyPlan: store.weeklyPlan,
     resources: store.resources,
     mistakes: store.mistakes,
+    pomodoroSessions: store.pomodoroSessions,
     settings: store.settings,
   }
   const storageBytes = getLocalStorageBytes()

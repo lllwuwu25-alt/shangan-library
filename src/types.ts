@@ -12,7 +12,8 @@ export type FileAttachment = {
   name: string
   type: string
   size: number
-  dataUrl: string
+  dataUrl?: string
+  storageKey?: string
 }
 
 export type Task = {
@@ -66,10 +67,19 @@ export type Settings = {
   theme: ThemeMode
 }
 
+export type PomodoroSession = {
+  id: string
+  title: string
+  minutes: number
+  mode: '专注' | '短休息' | '长休息'
+  completedAt: string
+}
+
 export type AppData = {
   tasks: Task[]
   weeklyPlan: WeeklyPlanItem[]
   resources: ResourceItem[]
   mistakes: Mistake[]
+  pomodoroSessions: PomodoroSession[]
   settings: Settings
 }

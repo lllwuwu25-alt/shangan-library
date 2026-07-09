@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { clearData, loadData, normalizeAppData, saveData } from '../lib/storage'
 import { initialData } from '../data/initialData'
 import { isoForCurrentWeekDay } from '../lib/date'
-import type { AppData, Mistake, ResourceItem, Settings, Task, WeeklyPlanItem } from '../types'
+import type { AppData, Mistake, PomodoroSession, ResourceItem, Settings, Task, WeeklyPlanItem } from '../types'
 
 const uid = (prefix: string) => `${prefix}-${crypto.randomUUID?.() ?? Date.now().toString(36)}`
 
@@ -25,6 +25,9 @@ type StudyStore = AppData & {
   updateMistake: (id: string, patch: Partial<Mistake>) => void
   deleteMistake: (id: string) => void
   toggleMistake: (id: string) => void
+  addPomodoroSession: (session: Omit<PomodoroSession, 'id' | 'completedAt'> & Partial<Pick<PomodoroSession, 'completedAt'>>) => void
+  deletePomodoroSession: (id: string) => void
+  clearPomodoroSessions: () => void
   updateSettings: (settings: Partial<Settings>) => void
   importData: (data: AppData) => void
   resetData: () => void
@@ -117,6 +120,22 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
     return next
   }),
   toggleMistake: (id) => get().updateMistake(id, { status: get().mistakes.find((item) => item.id === id)?.status === '已掌握' ? '待复习' : '已掌握' }),
+  addPomodoroSession: (session) => set((state) => {
+    const nextSession = { ...session, id: uid('pomo'), completedAt: session.completedAt ?? new Date().toISOString() }
+    const next = { ...state, pomodoroSessions: [nextSession, ...state.pomodoroSessions] }
+    persist(next)
+    return next
+  }),
+  deletePomodoroSession: (id) => set((state) => {
+    const next = { ...state, pomodoroSessions: state.pomodoroSessions.filter((session) => session.id !== id) }
+    persist(next)
+    return next
+  }),
+  clearPomodoroSessions: () => set((state) => {
+    const next = { ...state, pomodoroSessions: [] }
+    persist(next)
+    return next
+  }),
   updateSettings: (settings) => set((state) => {
     const next = { ...state, settings: { ...state.settings, ...settings } }
     persist(next)

@@ -1,4 +1,5 @@
 import type { FileAttachment } from '../types'
+import { attachmentToArrayBuffer, attachmentToObjectUrl, downloadAttachment, saveAttachmentBlob } from './fileStorage'
 
 const previewableTypes = ['image/', 'application/pdf', 'text/', 'audio/', 'video/']
 
@@ -36,6 +37,10 @@ export const dataUrlToArrayBuffer = async (dataUrl: string) => {
   return response.arrayBuffer()
 }
 
+export const attachmentToArrayBufferSafe = attachmentToArrayBuffer
+export const attachmentToObjectUrlSafe = attachmentToObjectUrl
+export const downloadAttachmentFile = downloadAttachment
+
 export const openAttachment = (file: FileAttachment) => {
   const win = window.open('', '_blank', 'noopener,noreferrer')
   if (!win) return false
@@ -48,15 +53,16 @@ export const openAttachment = (file: FileAttachment) => {
     '"': '&quot;',
     "'": '&#39;',
   })[char] ?? char)
-  const downloadLink = `<a href="${file.dataUrl}" download="${safeName}">下载文件</a>`
+  const href = file.dataUrl ?? ''
+  const downloadLink = href ? `<a href="${href}" download="${safeName}">下载文件</a>` : '<span>请在附件列表中下载文件</span>'
 
   if (file.type.startsWith('image/')) {
-    win.document.body.innerHTML = `<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.bar{position:fixed;top:16px;right:16px;background:white;border:1px solid #e2e8f0;border-radius:12px;padding:8px 12px;box-shadow:0 8px 24px rgba(15,23,42,.08)}img{max-width:100vw;max-height:100vh;object-fit:contain}</style><div class="bar">${downloadLink}</div><img src="${file.dataUrl}" alt="${safeName}" />`
+    win.document.body.innerHTML = `<style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.bar{position:fixed;top:16px;right:16px;background:white;border:1px solid #e2e8f0;border-radius:12px;padding:8px 12px;box-shadow:0 8px 24px rgba(15,23,42,.08)}img{max-width:100vw;max-height:100vh;object-fit:contain}</style><div class="bar">${downloadLink}</div><img src="${href}" alt="${safeName}" />`
     return true
   }
 
   if (file.type === 'application/pdf' || file.type.startsWith('text/') || file.type.startsWith('audio/') || file.type.startsWith('video/')) {
-    win.location.href = file.dataUrl
+    win.location.href = href
     return true
   }
 
@@ -66,16 +72,15 @@ export const openAttachment = (file: FileAttachment) => {
 
 export const filesToAttachments = async (files: FileList | File[]): Promise<FileAttachment[]> => {
   const list = Array.from(files)
-  return Promise.all(list.map((file) => new Promise<FileAttachment>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve({
-      id: `file-${crypto.randomUUID?.() ?? Date.now().toString(36)}`,
+  return Promise.all(list.map(async (file) => {
+    const id = `file-${crypto.randomUUID?.() ?? Date.now().toString(36)}`
+    await saveAttachmentBlob(id, file)
+    return {
+      id,
       name: file.name,
       type: file.type || 'application/octet-stream',
       size: file.size,
-      dataUrl: String(reader.result),
-    })
-    reader.onerror = () => reject(reader.error)
-    reader.readAsDataURL(file)
-  })))
+      storageKey: id,
+    }
+  }))
 }
