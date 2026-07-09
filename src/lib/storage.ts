@@ -3,7 +3,7 @@ import { defaultSubjects, defaultTimeSlots } from '../constants'
 import { dayNameFromIso, isoForCurrentWeekDay, todayIso } from './date'
 import type { AppData, DayName, Mistake, PomodoroSession, ResourceItem, Settings, Subject, Task, TimeSlot, WeeklyPlanItem } from '../types'
 
-export const STORAGE_KEY = 'shangan-library-data-v2'
+export const STORAGE_KEY = 'shangan-library-data-v1'
 const isDayName = (value: unknown): value is DayName => ['周一', '周二', '周三', '周四', '周五', '周六', '周日'].includes(String(value))
 const normalizeTimeSlots = (value: unknown): TimeSlot[] => {
   if (!Array.isArray(value)) return defaultTimeSlots
