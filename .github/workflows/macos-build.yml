@@ -19,7 +19,7 @@ jobs:
       matrix:
         include:
           - label: Apple Silicon
-            os: macos-latest
+            os: macos-15
             artifact-name: shangan-library-macos-apple-silicon
           - label: Intel
             os: macos-15-intel

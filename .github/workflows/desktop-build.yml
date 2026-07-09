@@ -19,7 +19,7 @@ jobs:
       matrix:
         include:
           - label: macOS Apple Silicon
-            os: macos-latest
+            os: macos-15
             artifact-name: shangan-library-macos-apple-silicon
             build-args: -- --bundles dmg
             artifact-path: |
