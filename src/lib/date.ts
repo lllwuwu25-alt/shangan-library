@@ -9,6 +9,11 @@ const localIsoDate = (date: Date) => {
 
 export const todayIso = () => localIsoDate(new Date())
 
+export const localIsoFromDateTime = (value: string) => {
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value.slice(0, 10) : localIsoDate(date)
+}
+
 export const addDaysIso = (days: number) => {
   const date = new Date()
   date.setDate(date.getDate() + days)

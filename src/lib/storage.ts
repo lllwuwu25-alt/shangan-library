@@ -74,6 +74,8 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
     minutes: Number(item.minutes ?? 25),
     mode: item.mode === '短休息' || item.mode === '长休息' ? item.mode : '专注',
     completedAt: item.completedAt ?? new Date().toISOString(),
+    subject: item.subject ? String(item.subject) : undefined,
+    taskId: item.taskId ? String(item.taskId) : undefined,
   }))
 
   return {

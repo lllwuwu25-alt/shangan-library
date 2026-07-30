@@ -73,6 +73,8 @@ export type PomodoroSession = {
   minutes: number
   mode: '专注' | '短休息' | '长休息'
   completedAt: string
+  subject?: Subject
+  taskId?: string
 }
 
 export type AppData = {

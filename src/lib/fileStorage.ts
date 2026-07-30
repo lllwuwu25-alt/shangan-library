@@ -33,7 +33,7 @@ const withStore = async <T>(mode: IDBTransactionMode, action: (store: IDBObjectS
   })
 }
 
-export const saveAttachmentBlob = async (id: string, file: File) => {
+export const saveAttachmentBlob = async (id: string, file: Blob) => {
   await withStore('readwrite', (store) => store.put(file, id))
 }
 
@@ -52,6 +52,10 @@ export const deleteAttachmentBlob = async (file: FileAttachment) => {
   const storageKey = file.storageKey
   if (!storageKey) return
   await withStore('readwrite', (store) => store.delete(storageKey))
+}
+
+export const clearAttachmentBlobs = async () => {
+  await withStore('readwrite', (store) => store.clear())
 }
 
 export const attachmentToObjectUrl = async (file: FileAttachment) => {

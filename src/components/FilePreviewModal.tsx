@@ -1,6 +1,6 @@
 import { Download, FileText, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
-import { attachmentToArrayBufferSafe, attachmentToObjectUrlSafe, downloadAttachmentFile, formatFileSize, isDocxFile, isExcelFile, isLegacyWordFile } from '../lib/files'
+import { attachmentToArrayBufferSafe, attachmentToObjectUrlSafe, downloadAttachmentFile, formatFileSize, isDocxFile, isExcelFile, isImageFile, isLegacyWordFile, isPdfFile } from '../lib/files'
 import type { FileAttachment } from '../types'
 
 type SheetPreview = {
@@ -111,24 +111,37 @@ export function FilePreviewModal({ file, onClose }: { file: FileAttachment; onCl
     setImageMode('fit')
   }, [file])
 
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [onClose])
+
   const body = (() => {
     if (loadError) return <UnsupportedPreview file={file} message={loadError} />
     if (!objectUrl) return <LoadingPreview text="正在读取文件..." />
 
-    if (file.type.startsWith('image/')) {
+    if (isImageFile(file)) {
       return (
-        <div className="flex min-h-full items-start justify-center p-4">
+        <div className={`flex min-h-full w-full justify-center p-4 ${imageMode === 'fit' ? 'h-full items-center overflow-hidden' : 'items-start overflow-auto'}`}>
           <img
             src={objectUrl}
             alt={file.name}
-            className={imageMode === 'fit' ? 'max-h-full max-w-full object-contain' : 'max-w-none rounded-lg shadow-sm'}
+            className={imageMode === 'fit' ? 'h-full w-full object-contain' : 'h-auto max-w-none rounded-lg shadow-sm'}
           />
         </div>
       )
     }
 
-    if (file.type === 'application/pdf') {
-      return <iframe src={objectUrl} title={file.name} className="h-full min-h-[720px] w-full border-0 bg-white" />
+    if (isPdfFile(file)) {
+      return <iframe src={objectUrl} title={file.name} className="block h-full w-full border-0 bg-white" />
     }
 
     if (isDocxFile(file)) {
@@ -148,7 +161,7 @@ export function FilePreviewModal({ file, onClose }: { file: FileAttachment; onCl
     }
 
     if (file.type.startsWith('text/')) {
-      return <iframe src={objectUrl} title={file.name} className="h-full min-h-[720px] w-full border-0 bg-white" />
+      return <iframe src={objectUrl} title={file.name} className="block h-full w-full border-0 bg-white" />
     }
 
     if (file.type.startsWith('video/')) {
@@ -175,15 +188,15 @@ export function FilePreviewModal({ file, onClose }: { file: FileAttachment; onCl
   })()
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-3 backdrop-blur-sm sm:p-5">
-      <div className="flex h-[92vh] w-full max-w-[1440px] flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/65 sm:p-3" role="dialog" aria-modal="true" aria-label={`预览 ${file.name}`}>
+      <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-white shadow-2xl sm:h-[calc(100dvh-1.5rem)] sm:max-w-[1600px] sm:rounded-2xl sm:ring-1 sm:ring-slate-200">
         <div className="flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 px-4 sm:px-5">
           <div className="min-w-0">
             <h2 className="truncate text-base font-semibold text-slate-950">{file.name}</h2>
             <p className="mt-0.5 truncate text-xs text-slate-500">{file.type || '未知类型'} · {formatFileSize(file.size)}</p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            {file.type.startsWith('image/') && (
+            {isImageFile(file) && (
               <button
                 type="button"
                 onClick={() => setImageMode((mode) => (mode === 'fit' ? 'actual' : 'fit'))}
@@ -201,7 +214,7 @@ export function FilePreviewModal({ file, onClose }: { file: FileAttachment; onCl
             </button>
           </div>
         </div>
-        <div className="min-h-0 flex-1 overflow-auto bg-slate-100">
+        <div className="min-h-0 flex-1 overflow-hidden bg-slate-100">
           {body}
         </div>
       </div>

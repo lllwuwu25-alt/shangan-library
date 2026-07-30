@@ -126,8 +126,8 @@ export function Plan() {
         <div className="space-y-5">
           <Card className="xl:hidden">
             <SectionTitle
-              title="完整新增"
-              caption="需要跨周或精确改日期时使用。日常新增建议点时段旁边的加号。"
+              title="按日期新增计划"
+              caption="选择本周或下周日期。日常新增也可以直接点时段旁边的加号。"
               action={<GhostButton className="w-full sm:w-auto" onClick={() => setFullComposerOpen((value) => !value)}>{fullComposerOpen ? '收起' : '展开'}</GhostButton>}
             />
             {fullComposerOpen && (
@@ -369,7 +369,7 @@ function DesktopPlanView({
       </div>
       <div className="space-y-5">
         <Card>
-          <SectionTitle title="完整新增" caption="也可以直接点击计划表里的日期或时段加号。" />
+          <SectionTitle title="按日期新增计划" caption="选择本周或下周日期；也可以直接点击计划表里的日期或时段加号。" />
           <FullTaskComposer currentWeek={currentWeek} nextWeek={nextWeek} subjects={subjects} timeSlots={timeSlots} addTask={actions.addTask} />
         </Card>
       </div>
@@ -380,7 +380,7 @@ function DesktopPlanView({
 function DayStrip({ tasks, selectedDate, onSelect }: { tasks: Task[]; selectedDate: string; onSelect: (date: string) => void }) {
   const today = todayIso()
   return (
-    <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1">
+    <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
       {dayNames.map((day) => {
         const date = isoForWeekDay(day)
         const dayTasks = tasks.filter((task) => task.date === date)
@@ -390,7 +390,7 @@ function DayStrip({ tasks, selectedDate, onSelect }: { tasks: Task[]; selectedDa
             key={date}
             type="button"
             onClick={() => onSelect(date)}
-            className={`min-w-[4.25rem] rounded-2xl px-3 py-2 text-left ring-1 transition ${active ? 'bg-blue-600 text-white ring-blue-600 shadow-sm' : 'bg-slate-50 text-slate-700 ring-slate-200'}`}
+            className={`min-w-0 rounded-xl px-2.5 py-2 text-left ring-1 transition ${active ? 'bg-blue-600 text-white ring-blue-600 shadow-sm' : 'bg-slate-50 text-slate-700 ring-slate-200'}`}
           >
             <span className="block text-xs font-medium">{date === today ? '今天' : day}</span>
             <span className="mt-1 block text-lg font-semibold leading-none">{date.slice(8)}</span>
@@ -582,11 +582,20 @@ function InlineTaskComposer({ date, slot, subjects, addTask, onDone }: { date: s
         <span>{date}</span>
         <span>{slot}</span>
       </div>
-      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_120px_92px_auto]">
-        <TextInput value={title} onChange={(event) => setTitle(event.target.value)} placeholder="任务名称" className="min-h-11" />
-        <Select value={safeSubject} onChange={(event) => setSubject(event.target.value)} className="min-h-11">{subjects.map((item) => <option key={item}>{item}</option>)}</Select>
-        <TextInput type="number" min={1} value={minutes} onChange={(event) => setMinutes(Number(event.target.value))} className="min-h-11" />
-        <Button onClick={submit} className="min-h-11 w-full sm:w-auto"><Plus size={16} />加入</Button>
+      <div className="grid gap-2">
+        <label className="grid min-w-0 gap-1 text-xs font-medium text-blue-900">
+          任务名称
+          <TextInput value={title} onChange={(event) => setTitle(event.target.value)} placeholder="例如：完成真题阅读" className="min-h-11 bg-white" />
+        </label>
+        <label className="grid min-w-0 gap-1 text-xs font-medium text-blue-900">
+          科目
+          <Select value={safeSubject} onChange={(event) => setSubject(event.target.value)} className="min-h-11 bg-white" title={safeSubject}>{subjects.map((item) => <option key={item}>{item}</option>)}</Select>
+        </label>
+        <label className="grid min-w-0 gap-1 text-xs font-medium text-blue-900">
+          预计时长（分钟）
+          <TextInput type="number" min={1} value={minutes} onChange={(event) => setMinutes(Number(event.target.value))} className="min-h-11 bg-white" />
+        </label>
+        <Button onClick={submit} className="min-h-11 w-full"><Plus size={16} />加入计划</Button>
       </div>
     </div>
   )
@@ -681,15 +690,26 @@ function FullTaskComposer({ currentWeek, nextWeek, subjects, timeSlots, addTask 
 
   return (
     <div className="grid gap-3">
-      <TextInput placeholder="任务名称" value={taskTitle} onChange={(event) => setTaskTitle(event.target.value)} />
-      <div className="grid gap-3 sm:grid-cols-2">
+      <label className="grid min-w-0 gap-1.5 text-xs font-medium text-slate-700">
+        任务名称
+        <TextInput placeholder="例如：完成真题阅读" value={taskTitle} onChange={(event) => setTaskTitle(event.target.value)} />
+      </label>
+      <label className="grid min-w-0 gap-1.5 text-xs font-medium text-slate-700">
+        计划日期
         <TextInput type="date" min={currentWeek.start} max={nextWeek.end} value={taskDate} onChange={(event) => setTaskDate(event.target.value)} />
-        <Select value={safeTaskSlot} onChange={(event) => setTaskSlot(event.target.value)}>{timeSlots.map((slot) => <option key={slot}>{slot}</option>)}</Select>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Select value={safeTaskSubject} onChange={(event) => setTaskSubject(event.target.value)}>{subjects.map((subject) => <option key={subject}>{subject}</option>)}</Select>
+      </label>
+      <label className="grid min-w-0 gap-1.5 text-xs font-medium text-slate-700">
+        学习时段
+        <Select value={safeTaskSlot} onChange={(event) => setTaskSlot(event.target.value)} title={safeTaskSlot}>{timeSlots.map((slot) => <option key={slot}>{slot}</option>)}</Select>
+      </label>
+      <label className="grid min-w-0 gap-1.5 text-xs font-medium text-slate-700">
+        科目
+        <Select value={safeTaskSubject} onChange={(event) => setTaskSubject(event.target.value)} title={safeTaskSubject}>{subjects.map((subject) => <option key={subject}>{subject}</option>)}</Select>
+      </label>
+      <label className="grid min-w-0 gap-1.5 text-xs font-medium text-slate-700">
+        预计时长（分钟）
         <TextInput type="number" min={1} value={taskMinutes} onChange={(event) => setTaskMinutes(Number(event.target.value))} />
-      </div>
+      </label>
       <Panel className="bg-blue-50 text-blue-800 ring-blue-100">
         <p className="break-words text-xs leading-5">将写入 <b>{taskDate}</b> · <b>{selectedTaskDay}</b> · <b>{safeTaskSlot}</b>。</p>
       </Panel>

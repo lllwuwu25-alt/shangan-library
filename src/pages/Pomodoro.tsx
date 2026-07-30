@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   Check,
+  ListTodo,
   Maximize2,
   Minimize2,
   Pause,
@@ -11,9 +12,10 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { PageHeader } from '../components/Layout'
 import { Button, Card, DangerButton, EmptyState, GhostButton, SectionTitle, Select, StatCard, TextInput } from '../components/ui'
-import { todayIso, weekRange } from '../lib/date'
+import { defaultSubjects, subjectOptions } from '../constants'
+import { localIsoFromDateTime, todayIso, weekRange } from '../lib/date'
 import { useStudyStore } from '../store/useStudyStore'
-import type { PomodoroSession } from '../types'
+import type { PomodoroSession, Subject } from '../types'
 
 type TimerMode = PomodoroSession['mode']
 
@@ -22,8 +24,6 @@ const modeOptions: Array<{ mode: TimerMode; minutes: number; label: string }> = 
   { mode: '短休息', minutes: 5, label: '5 分钟短休息' },
   { mode: '长休息', minutes: 15, label: '15 分钟长休息' },
 ]
-
-const isoFromDate = (value: string) => value.slice(0, 10)
 
 const formatClock = (seconds: number) => {
   const minutes = Math.floor(seconds / 60)
@@ -45,6 +45,8 @@ export function Pomodoro() {
   const addPomodoroSession = useStudyStore((state) => state.addPomodoroSession)
   const deletePomodoroSession = useStudyStore((state) => state.deletePomodoroSession)
   const clearPomodoroSessions = useStudyStore((state) => state.clearPomodoroSessions)
+  const tasks = useStudyStore((state) => state.tasks)
+  const settings = useStudyStore((state) => state.settings)
 
   const [mode, setMode] = useState<TimerMode>('专注')
   const [customMinutes, setCustomMinutes] = useState(25)
@@ -52,8 +54,13 @@ export function Pomodoro() {
   const [isRunning, setIsRunning] = useState(false)
   const [isFocusView, setIsFocusView] = useState(false)
   const [title, setTitle] = useState('专注学习')
+  const [subject, setSubject] = useState<Subject>(settings.subjects[0] ?? defaultSubjects[0])
+  const [selectedTaskId, setSelectedTaskId] = useState('')
 
-  const selectedPreset = modeOptions.find((item) => item.mode === mode)
+  const today = todayIso()
+  const todayTasks = tasks.filter((task) => task.date === today)
+  const subjects = subjectOptions([...settings.subjects, ...tasks.map((task) => task.subject)])
+  const safeSubject = subjects.includes(subject) ? subject : subjects[0] ?? defaultSubjects[0]
 
   useEffect(() => {
     if (!isRunning) return
@@ -100,8 +107,18 @@ export function Pomodoro() {
       title: title.trim() || '专注学习',
       minutes: customMinutes,
       mode,
+      subject: mode === '专注' ? safeSubject : undefined,
+      taskId: mode === '专注' && selectedTaskId ? selectedTaskId : undefined,
     })
     resetTimer(mode, customMinutes)
+  }
+
+  const selectTask = (taskId: string) => {
+    setSelectedTaskId(taskId)
+    const task = todayTasks.find((item) => item.id === taskId)
+    if (!task) return
+    setTitle(task.title)
+    setSubject(task.subject)
   }
 
   const enterFocusView = async () => {
@@ -118,12 +135,11 @@ export function Pomodoro() {
     if (document.fullscreenElement) await document.exitFullscreen()
   }
 
-  const today = todayIso()
   const currentWeek = weekRange(0)
   const focusSessions = sessions.filter((item) => item.mode === '专注')
-  const todayFocus = focusSessions.filter((item) => isoFromDate(item.completedAt) === today)
+  const todayFocus = focusSessions.filter((item) => localIsoFromDateTime(item.completedAt) === today)
   const weekFocus = focusSessions.filter((item) => {
-    const date = isoFromDate(item.completedAt)
+    const date = localIsoFromDateTime(item.completedAt)
     return date >= currentWeek.start && date <= currentWeek.end
   })
 
@@ -144,6 +160,7 @@ export function Pomodoro() {
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-blue-300">{mode}</p>
               <h1 className="mt-1 truncate text-base font-semibold text-white sm:text-lg">{title.trim() || '专注学习'}</h1>
+              {mode === '专注' && <p className="mt-1 truncate text-xs text-slate-400">{safeSubject}{selectedTaskId ? ' · 已关联今日任务' : ' · 独立专注'}</p>}
             </div>
             <button
               type="button"
@@ -223,13 +240,26 @@ export function Pomodoro() {
         <Card className="overflow-hidden p-0">
           <div className="border-b border-slate-200 px-5 py-4">
             <SectionTitle title="专注计时" caption="完成后会写入本地专注记录，刷新页面也不会丢失。" />
-            <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_160px]">
+            <div className="grid gap-3 md:grid-cols-2">
               <TextInput value={title} onChange={(event) => setTitle(event.target.value)} placeholder="本次专注内容" />
               <Select value={mode} onChange={(event) => changeMode(event.target.value as TimerMode)}>
                 {modeOptions.map((item) => <option key={item.mode} value={item.mode}>{item.label}</option>)}
               </Select>
-              <TextInput type="number" min={1} max={240} value={customMinutes} onChange={(event) => changeMinutes(Number(event.target.value))} />
+              <Select value={selectedTaskId} onChange={(event) => selectTask(event.target.value)} disabled={mode !== '专注'}>
+                <option value="">不关联任务</option>
+                {todayTasks.map((task) => <option key={task.id} value={task.id}>{task.slot} · {task.title}</option>)}
+              </Select>
+              <div className="grid grid-cols-[minmax(0,1fr)_120px] gap-3">
+                <Select value={safeSubject} onChange={(event) => setSubject(event.target.value)} disabled={mode !== '专注'}>
+                  {subjects.map((item) => <option key={item}>{item}</option>)}
+                </Select>
+                <TextInput type="number" min={1} max={240} value={customMinutes} onChange={(event) => changeMinutes(Number(event.target.value))} aria-label="计时分钟数" />
+              </div>
             </div>
+            <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-slate-500">
+              <ListTodo size={14} className="mt-0.5 shrink-0" />
+              关联今日任务后，本次专注会计入该任务的投入时长；番茄钟不会自动把任务标记为完成。
+            </p>
           </div>
 
           <div className="grid place-items-center px-5 py-10 text-center">
@@ -237,7 +267,7 @@ export function Pomodoro() {
               <div className="absolute inset-4 rounded-full border-[10px] border-blue-100" />
               <div className="absolute inset-4 rounded-full border-[10px] border-blue-600 border-l-transparent border-t-transparent" />
               <div className="relative">
-                <p className="text-sm font-medium text-blue-700">{selectedPreset?.label ?? mode}</p>
+                <p className="text-sm font-medium text-blue-700">{customMinutes} 分钟{mode}</p>
                 <p className="mt-3 font-mono text-6xl font-semibold tracking-tight text-slate-950 sm:text-7xl">{formatClock(remainingSeconds)}</p>
                 <p className="mt-3 text-sm text-slate-500">{mode === '专注' ? '保持当前节奏' : '休息一下，下一轮更稳'}</p>
               </div>
@@ -290,7 +320,7 @@ export function Pomodoro() {
               <div key={session.id} className="grid gap-3 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-slate-950">{session.title}</p>
-                  <p className="mt-1 text-xs text-slate-500">{formatDateTime(session.completedAt)} · {session.mode}</p>
+                  <p className="mt-1 text-xs text-slate-500">{formatDateTime(session.completedAt)} · {session.mode}{session.subject ? ` · ${session.subject}` : ''}{session.taskId ? ' · 已关联任务' : ''}</p>
                 </div>
                 <span className="w-fit rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200">{session.minutes} 分钟</span>
                 <button type="button" onClick={() => deletePomodoroSession(session.id)} className="flex size-9 items-center justify-center rounded-xl text-red-500 transition hover:bg-red-50" aria-label="删除番茄钟记录">

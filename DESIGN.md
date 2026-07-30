@@ -100,9 +100,12 @@ Motion should only reinforce state changes. Current transitions are short hover/
 
 - Weekly plan and today's tasks must share the same `tasks` source of truth.
 - A task carries `day`, `slot`, `date`, `subject`, `minutes`, and `status`.
-- Resources and mistakes can contain `attachments`, stored locally as data URLs for MVP purposes.
+- Resources and mistakes can contain `attachments`; metadata is persisted with app data and file bodies are stored in local IndexedDB.
 - Mistakes carry `importance` as `红`, `黄`, or `绿`, with text labels visible wherever color appears.
 - Settings drive countdown copy across dashboard, plan, and settings surfaces.
+- Pomodoro focus sessions are the preferred source for study-duration statistics; completed-task minutes remain a fallback for older history.
+- Full backups include app data and embedded attachment bodies, then restore attachments into IndexedDB.
+- Light, dark, and system themes must apply consistently to the shell, navigation, cards, forms, semantic states, and preview surfaces.
 
 ## Accessibility Notes
 

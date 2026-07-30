@@ -1,5 +1,5 @@
-import type { FileAttachment } from '../types'
-import { attachmentToArrayBuffer, attachmentToObjectUrl, downloadAttachment, saveAttachmentBlob } from './fileStorage'
+import type { AppData, FileAttachment } from '../types'
+import { attachmentToArrayBuffer, attachmentToObjectUrl, downloadAttachment, getAttachmentBlob, saveAttachmentBlob } from './fileStorage'
 
 const previewableTypes = ['image/', 'application/pdf', 'text/', 'audio/', 'video/']
 
@@ -11,7 +11,11 @@ export const formatFileSize = (size: number) => {
 
 export const fileNameWithoutExtension = (name: string) => name.replace(/\.[^/.]+$/, '')
 
-export const isPreviewableFile = (file: FileAttachment) => previewableTypes.some((type) => file.type.startsWith(type))
+export const isImageFile = (file: FileAttachment) => file.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(file.name)
+
+export const isPdfFile = (file: FileAttachment) => file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
+
+export const isPreviewableFile = (file: FileAttachment) => previewableTypes.some((type) => file.type.startsWith(type)) || isImageFile(file) || isPdfFile(file)
 
 export const isDocxFile = (file: FileAttachment) => {
   const lowerName = file.name.toLowerCase()
@@ -40,6 +44,57 @@ export const dataUrlToArrayBuffer = async (dataUrl: string) => {
 export const attachmentToArrayBufferSafe = attachmentToArrayBuffer
 export const attachmentToObjectUrlSafe = attachmentToObjectUrl
 export const downloadAttachmentFile = downloadAttachment
+
+const blobToDataUrl = (blob: Blob) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader()
+  reader.onload = () => resolve(String(reader.result))
+  reader.onerror = () => reject(reader.error)
+  reader.readAsDataURL(blob)
+})
+
+export const attachmentToDataUrl = async (file: FileAttachment) => {
+  if (file.dataUrl) return file.dataUrl
+  return blobToDataUrl(await getAttachmentBlob(file))
+}
+
+const embedAttachment = async (file: FileAttachment): Promise<FileAttachment> => ({
+  ...file,
+  dataUrl: await attachmentToDataUrl(file),
+})
+
+export const embedAttachmentsForBackup = async (data: AppData): Promise<AppData> => ({
+  ...data,
+  resources: await Promise.all(data.resources.map(async (resource) => ({
+    ...resource,
+    attachments: await Promise.all(resource.attachments.map(embedAttachment)),
+  }))),
+  mistakes: await Promise.all(data.mistakes.map(async (mistake) => ({
+    ...mistake,
+    attachments: await Promise.all(mistake.attachments.map(embedAttachment)),
+  }))),
+})
+
+const restoreAttachment = async (file: FileAttachment): Promise<FileAttachment> => {
+  if (!file.dataUrl) return file
+  const storageKey = file.storageKey || file.id
+  const blob = await fetch(file.dataUrl).then((response) => response.blob())
+  await saveAttachmentBlob(storageKey, blob)
+  const restored = { ...file, storageKey }
+  delete restored.dataUrl
+  return restored
+}
+
+export const restoreAttachmentsFromBackup = async (data: AppData): Promise<AppData> => ({
+  ...data,
+  resources: await Promise.all(data.resources.map(async (resource) => ({
+    ...resource,
+    attachments: await Promise.all(resource.attachments.map(restoreAttachment)),
+  }))),
+  mistakes: await Promise.all(data.mistakes.map(async (mistake) => ({
+    ...mistake,
+    attachments: await Promise.all(mistake.attachments.map(restoreAttachment)),
+  }))),
+})
 
 export const openAttachment = (file: FileAttachment) => {
   const win = window.open('', '_blank', 'noopener,noreferrer')

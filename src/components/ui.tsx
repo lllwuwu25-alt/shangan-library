@@ -48,7 +48,7 @@ export function DangerButton({ className = '', ...props }: ButtonHTMLAttributes<
 }
 
 export function TextInput(props: InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={`h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 hover:border-slate-300 focus:border-blue-300 focus:ring-3 focus:ring-blue-100 ${props.className ?? ''}`} />
+  return <input {...props} className={`h-10 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-500 hover:border-slate-300 focus:border-blue-300 focus:ring-3 focus:ring-blue-100 ${props.className ?? ''}`} />
 }
 
 export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
@@ -56,7 +56,7 @@ export function TextArea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
 }
 
 export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={`h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition hover:border-slate-300 focus:border-blue-300 focus:ring-3 focus:ring-blue-100 ${props.className ?? ''}`} />
+  return <select {...props} className={`h-10 w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition hover:border-slate-300 focus:border-blue-300 focus:ring-3 focus:ring-blue-100 ${props.className ?? ''}`} />
 }
 
 export function Pill({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'blue' | 'green' | 'neutral' | 'amber' }) {

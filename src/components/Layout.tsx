@@ -1,10 +1,10 @@
-import { BookOpen, CalendarDays, Home, Library, MessageCircle, Settings, ShieldCheck, TriangleAlert } from 'lucide-react'
+import { BookOpen, CalendarDays, Home, Library, MessageCircle, Settings, ShieldCheck, Timer, TriangleAlert } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 const navItems = [
   { path: '/dashboard', label: '首页总览', icon: Home },
   { path: '/plan', label: '学习计划', icon: CalendarDays },
-  { path: '/pomodoro', label: '番茄钟', icon: CalendarDays },
+  { path: '/pomodoro', label: '番茄钟', icon: Timer },
   { path: '/resources', label: '资料库', icon: Library },
   { path: '/mistakes', label: '错题本', icon: TriangleAlert },
   { path: '/settings', label: '设置', icon: Settings },
@@ -14,7 +14,7 @@ const navItems = [
 const mobileNavItems = [
   { path: '/dashboard', label: '首页', icon: Home },
   { path: '/plan', label: '计划', icon: CalendarDays },
-  { path: '/pomodoro', label: '番茄', icon: CalendarDays },
+  { path: '/pomodoro', label: '番茄', icon: Timer },
   { path: '/resources', label: '资料', icon: Library },
   { path: '/mistakes', label: '错题', icon: TriangleAlert },
 ]

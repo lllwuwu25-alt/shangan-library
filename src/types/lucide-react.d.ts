@@ -33,10 +33,12 @@ declare module 'lucide-react' {
   export const Import: LucideIcon
   export const Library: LucideIcon
   export const Link: LucideIcon
+  export const ListTodo: LucideIcon
   export const Mail: LucideIcon
   export const MessageCircle: LucideIcon
   export const Maximize2: LucideIcon
   export const Minimize2: LucideIcon
+  export const Monitor: LucideIcon
   export const Moon: LucideIcon
   export const Paperclip: LucideIcon
   export const Pause: LucideIcon
@@ -51,6 +53,7 @@ declare module 'lucide-react' {
   export const Sparkles: LucideIcon
   export const Sun: LucideIcon
   export const SunMedium: LucideIcon
+  export const Timer: LucideIcon
   export const TimerReset: LucideIcon
   export const Trash2: LucideIcon
   export const TriangleAlert: LucideIcon

@@ -1,12 +1,13 @@
 import { ArrowRight, CheckCircle2, Clock, Database, Flame, HardDrive, TimerReset } from 'lucide-react'
 import { defaultSubjects, subjectOptions } from '../constants'
-import { currentDayName, daysUntil, isoForCurrentWeekDay, todayIso, weekRange } from '../lib/date'
+import { currentDayName, daysUntil, isoForCurrentWeekDay, localIsoFromDateTime, todayIso, weekRange } from '../lib/date'
 import { useStudyStore } from '../store/useStudyStore'
 import { Card, EmptyState, GhostButton, Panel, Pill, SectionTitle, StatCard } from '../components/ui'
 import { PageHeader } from '../components/Layout'
+import type { PomodoroSession, Task } from '../types'
 
 export function Dashboard({ go }: { go: (path: string) => void }) {
-  const { tasks, resources, settings, toggleTask } = useStudyStore()
+  const { tasks, resources, pomodoroSessions, settings, toggleTask } = useStudyStore()
   const todayDay = currentDayName()
   const todayDate = todayIso()
   const currentWeek = weekRange(0)
@@ -15,7 +16,9 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
   const done = tasks.filter((task) => task.status === 'done')
   const todayDone = todayTasks.filter((task) => task.status === 'done')
   const nextTask = todayTasks.find((task) => task.status !== 'done')
-  const todayMinutes = done.filter((task) => task.date === todayDate).reduce((sum, task) => sum + task.minutes, 0)
+  const studyStats = buildStudyStats(done, pomodoroSessions)
+  const todayStudy = studyStats.get(todayDate) ?? { minutes: 0, doneCount: 0, focusCount: 0, estimated: false }
+  const todayMinutes = todayStudy.minutes
   const currentWeekDone = currentWeekTasks.filter((task) => task.status === 'done')
   const completion = currentWeekTasks.length ? Math.round((currentWeekDone.length / currentWeekTasks.length) * 100) : 0
   const dayPlan = todayTasks
@@ -28,14 +31,15 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
     const doneCount = subjectTasks.filter((task) => task.status === 'done').length
     return { subject, value: subjectTasks.length ? Math.round((doneCount / subjectTasks.length) * 100) : 0 }
   })
-  const heatmap = buildHeatmap(done)
+  const heatmap = buildHeatmap(studyStats)
   const streak = calculateStreak(heatmap.days)
   const activeDays = heatmap.days.filter((day) => day.minutes > 0).length
+  const hasStudyHistory = activeDays > 0
   const bestDay = heatmap.days.reduce((best, day) => (day.minutes > best.minutes ? day : best), heatmap.days[0])
   const currentGap = calculateCurrentGap(heatmap.days)
-  const monthMinutes = done
-    .filter((task) => task.date.startsWith(todayIsoMonth()))
-    .reduce((sum, task) => sum + task.minutes, 0)
+  const monthMinutes = heatmap.days
+    .filter((day) => day.date.startsWith(todayIsoMonth()))
+    .reduce((sum, day) => sum + day.minutes, 0)
 
   return (
     <>
@@ -61,7 +65,13 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
       </section>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard icon={<TimerReset size={18} />} label="考试倒计时" value={countdownText} detail={settings.examName || '请在设置中填写考试信息'} />
-        <StatCard icon={<Clock size={18} />} label="今日学习时长" value={`${Math.floor(todayMinutes / 60)}h ${todayMinutes % 60}m`} detail={`${todayDone.length}/${todayTasks.length} 个任务完成`} tone="slate" />
+        <StatCard
+          icon={<Clock size={18} />}
+          label="今日学习时长"
+          value={`${Math.floor(todayMinutes / 60)}h ${todayMinutes % 60}m`}
+          detail={todayStudy.focusCount > 0 ? `${todayStudy.focusCount} 次番茄专注 · ${todayDone.length}/${todayTasks.length} 个任务完成` : `${todayDone.length}/${todayTasks.length} 个任务完成 · 暂按完成任务估算`}
+          tone="slate"
+        />
         <StatCard icon={<CheckCircle2 size={18} />} label="本周完成率" value={`${completion}%`} detail="按本周计划任务计算" tone="green" />
         <StatCard icon={<Database size={18} />} label="累计资料数" value={`${resources.length} 份`} detail="含文件附件索引" tone="amber" />
       </div>
@@ -114,7 +124,7 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
       <Card className="mt-5">
         <SectionTitle
           title="学习热力图"
-          caption="按已完成任务统计最近 12 周学习强度，颜色越深代表投入越多。"
+          caption="优先按番茄钟的真实专注时长统计；没有专注记录的日期，沿用已完成任务时长作为历史估算。"
           action={<span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-100"><Flame size={13} />连续 {streak} 天</span>}
         />
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -134,7 +144,7 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
                       day ? (
                         <span
                           key={day.date}
-                          title={`${day.date} · ${day.minutes} 分钟 · ${day.doneCount} 个完成任务`}
+                          title={`${day.date} · ${day.minutes} 分钟 · ${day.focusCount} 次专注 · ${day.doneCount} 个完成任务${day.estimated ? ' · 任务时长估算' : ''}`}
                           className={`aspect-square rounded-[5px] ring-1 ${heatLevelClass(day.minutes)}`}
                         />
                       ) : <span key={`${month.key}-empty-${index}`} className="aspect-square" />
@@ -158,6 +168,7 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
             <Panel>
               <p className="text-xs text-slate-500">今天学了多久</p>
               <p className="mt-1 text-xl font-semibold text-slate-950">{Math.floor(todayMinutes / 60)}h {todayMinutes % 60}m</p>
+              <p className="mt-1 text-xs text-slate-500">{todayStudy.focusCount > 0 ? `${todayStudy.focusCount} 次真实专注` : '暂无番茄钟记录'}</p>
             </Panel>
             <Panel>
               <p className="text-xs text-slate-500">连续打卡</p>
@@ -167,9 +178,9 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
               <p className="text-xs text-slate-500">本月累计</p>
               <p className="mt-1 text-xl font-semibold text-slate-950">{(monthMinutes / 60).toFixed(1)} 小时</p>
             </Panel>
-            <Panel className={currentGap > 0 ? 'bg-amber-50 text-amber-900 ring-amber-100' : 'bg-emerald-50 text-emerald-900 ring-emerald-100'}>
-              <p className="text-xs">{currentGap > 0 ? '当前断档' : '今日已打卡'}</p>
-              <p className="mt-1 text-xl font-semibold">{currentGap > 0 ? `${currentGap} 天` : '保持中'}</p>
+            <Panel className={!hasStudyHistory ? '' : currentGap > 0 ? 'bg-amber-50 text-amber-900 ring-amber-100' : 'bg-emerald-50 text-emerald-900 ring-emerald-100'}>
+              <p className={`text-xs ${!hasStudyHistory ? 'text-slate-500' : ''}`}>{!hasStudyHistory ? '学习记录' : currentGap > 0 ? '当前断档' : '今日已打卡'}</p>
+              <p className="mt-1 text-xl font-semibold">{!hasStudyHistory ? '尚未开始' : currentGap > 0 ? `${currentGap} 天` : '保持中'}</p>
             </Panel>
             <Panel>
               <p className="text-xs text-slate-500">最高投入日</p>
@@ -210,15 +221,44 @@ type HeatmapDay = {
   date: string
   minutes: number
   doneCount: number
+  focusCount: number
+  estimated: boolean
 }
 
-function buildHeatmap(doneTasks: Array<{ date: string; minutes: number }>) {
-  const statsByDate = new Map<string, { minutes: number; doneCount: number }>()
+type StudyDayStat = Omit<HeatmapDay, 'date'>
+
+function buildStudyStats(doneTasks: Task[], sessions: PomodoroSession[]) {
+  const statsByDate = new Map<string, StudyDayStat>()
   doneTasks.forEach((task) => {
-    const current = statsByDate.get(task.date) ?? { minutes: 0, doneCount: 0 }
-    statsByDate.set(task.date, { minutes: current.minutes + task.minutes, doneCount: current.doneCount + 1 })
+    const current = statsByDate.get(task.date) ?? { minutes: 0, doneCount: 0, focusCount: 0, estimated: true }
+    statsByDate.set(task.date, {
+      ...current,
+      minutes: current.minutes + task.minutes,
+      doneCount: current.doneCount + 1,
+      estimated: current.focusCount === 0,
+    })
   })
 
+  const focusByDate = new Map<string, { minutes: number; count: number }>()
+  sessions.filter((session) => session.mode === '专注').forEach((session) => {
+    const date = localIsoFromDateTime(session.completedAt)
+    const current = focusByDate.get(date) ?? { minutes: 0, count: 0 }
+    focusByDate.set(date, { minutes: current.minutes + session.minutes, count: current.count + 1 })
+  })
+
+  focusByDate.forEach((focus, date) => {
+    const current = statsByDate.get(date) ?? { minutes: 0, doneCount: 0, focusCount: 0, estimated: false }
+    statsByDate.set(date, {
+      ...current,
+      minutes: focus.minutes,
+      focusCount: focus.count,
+      estimated: false,
+    })
+  })
+  return statsByDate
+}
+
+function buildHeatmap(statsByDate: Map<string, StudyDayStat>) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const monthStarts = [-2, -1, 0].map((offset) => new Date(today.getFullYear(), today.getMonth() + offset, 1))
@@ -231,11 +271,13 @@ function buildHeatmap(doneTasks: Array<{ date: string; minutes: number }>) {
     const days: HeatmapDay[] = Array.from({ length: daysInMonth }, (_, index) => {
       const date = new Date(year, month, index + 1)
       const iso = toIso(date)
-      const stats = statsByDate.get(iso) ?? { minutes: 0, doneCount: 0 }
+      const stats = statsByDate.get(iso) ?? { minutes: 0, doneCount: 0, focusCount: 0, estimated: false }
       return {
         date: iso,
         minutes: stats.minutes,
         doneCount: stats.doneCount,
+        focusCount: stats.focusCount,
+        estimated: stats.estimated,
       }
     })
     const trailingEmptyCells = (7 - ((leadingEmptyCells + days.length) % 7)) % 7

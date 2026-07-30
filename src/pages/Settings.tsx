@@ -1,10 +1,12 @@
-import { Bell, Database, Download, HardDrive, Moon, Plus, RotateCcw, ShieldCheck, SunMedium, Trash2, Upload } from 'lucide-react'
+import { Bell, Database, Download, HardDrive, Monitor, Moon, Plus, RotateCcw, ShieldCheck, SunMedium, Trash2, Upload } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useRef, useState } from 'react'
 import { PageHeader } from '../components/Layout'
 import { Button, Card, DangerButton, GhostButton, Panel, SectionTitle, Select, TextInput } from '../components/ui'
 import { defaultResourceCategories, defaultSubjects, subjectOptions } from '../constants'
-import { STORAGE_KEY } from '../lib/storage'
+import { embedAttachmentsForBackup, restoreAttachmentsFromBackup } from '../lib/files'
+import { clearAttachmentBlobs } from '../lib/fileStorage'
+import { normalizeAppData, STORAGE_KEY } from '../lib/storage'
 import { useStudyStore } from '../store/useStudyStore'
 import type { AppData, Subject, ThemeMode } from '../types'
 
@@ -13,6 +15,7 @@ export function Settings() {
   const fileRef = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState('')
   const [newSubject, setNewSubject] = useState('')
+  const [isProcessingBackup, setIsProcessingBackup] = useState(false)
 
   const data: AppData = {
     tasks: store.tasks,
@@ -22,7 +25,8 @@ export function Settings() {
     pomodoroSessions: store.pomodoroSessions,
     settings: store.settings,
   }
-  const storageBytes = getLocalStorageBytes()
+  const attachmentBytes = getAttachmentBytes(data)
+  const storageBytes = getLocalStorageBytes() + attachmentBytes
   const lastBackupText = store.settings.lastBackupAt ? formatDateTime(store.settings.lastBackupAt) : '从未备份'
   const reminderStatus = getBackupReminderStatus(store.settings.lastBackupAt, store.settings.backupReminderDays)
   const subjects = subjectOptions([...store.settings.subjects, ...getUsedSubjects(data)])
@@ -53,41 +57,62 @@ export function Settings() {
     setMessage(`已删除科目：${subject}`)
   }
 
-  const exportBackup = () => {
-    const backedUpAt = new Date().toISOString()
-    const backupData = {
-      ...data,
-      settings: {
-        ...store.settings,
-        lastBackupAt: backedUpAt,
-      },
+  const exportBackup = async () => {
+    setIsProcessingBackup(true)
+    setMessage('正在整理学习数据和附件，请稍候…')
+    try {
+      const now = new Date()
+      const backedUpAt = now.toISOString()
+      const backupData = await embedAttachmentsForBackup({
+        ...data,
+        settings: {
+          ...store.settings,
+          lastBackupAt: backedUpAt,
+        },
+      })
+      const blob = new Blob([JSON.stringify(backupData)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      const time = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`
+      link.href = url
+      link.download = `上岸资料库-完整备份-${now.toISOString().slice(0, 10)}-${time}.json`
+      link.click()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+      store.updateSettings({ lastBackupAt: backedUpAt })
+      setMessage(`完整备份已生成，包含学习数据和 ${getAttachmentCount(data)} 个附件。`)
+    } catch {
+      setMessage('备份失败：有附件正文无法读取。请确认附件仍可预览后再试。')
+    } finally {
+      setIsProcessingBackup(false)
     }
-    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `上岸资料库-备份-${new Date().toISOString().slice(0, 10)}.json`
-    link.click()
-    URL.revokeObjectURL(url)
-    store.updateSettings({ lastBackupAt: backedUpAt })
-    setMessage('备份已生成，并记录了本次备份时间。')
   }
 
   const importBackup = async (file?: File) => {
     if (!file) return
+    setIsProcessingBackup(true)
+    setMessage('正在读取备份并恢复附件，请稍候…')
     try {
       const text = await file.text()
-      const imported = JSON.parse(text) as AppData
-      if (!imported.tasks || !imported.weeklyPlan || !imported.resources || !imported.mistakes || !imported.settings) {
+      const imported = JSON.parse(text) as Partial<AppData>
+      if (!Array.isArray(imported.tasks) || !Array.isArray(imported.resources) || !Array.isArray(imported.mistakes) || !imported.settings) {
         throw new Error('数据结构不完整')
       }
-      store.importData(imported)
-      setMessage('恢复成功，备份数据已写入本地。')
+      const restored = await restoreAttachmentsFromBackup(normalizeAppData(imported))
+      store.importData(restored)
+      setMessage(`恢复成功，学习数据和 ${getAttachmentCount(restored)} 个附件已写入本地。`)
     } catch {
-      setMessage('恢复失败，请选择上岸资料库生成的备份文件。')
+      setMessage('恢复失败，请选择上岸资料库生成的完整备份文件。')
     } finally {
+      setIsProcessingBackup(false)
       if (fileRef.current) fileRef.current.value = ''
     }
+  }
+
+  const resetAllData = async () => {
+    if (!confirm('确认清空所有本地数据和附件？此操作无法撤销，建议先立即备份。')) return
+    await clearAttachmentBlobs()
+    store.resetData()
+    setMessage('已清空学习数据和本地附件，系统已恢复为空白初始状态。')
   }
 
   return (
@@ -96,7 +121,7 @@ export function Settings() {
       <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-5">
           <Card>
-            <SectionTitle title="数据安全中心" caption="把导入导出包装成更直观的备份和恢复流程。" />
+            <SectionTitle title="数据安全中心" caption="一键备份会同时保存计划、资料、错题、番茄钟记录和附件正文。" />
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
               <div className="rounded-2xl bg-slate-950 p-5 text-white">
                 <div className="flex items-start justify-between gap-4">
@@ -116,9 +141,9 @@ export function Settings() {
                 </div>
               </div>
               <div className="grid gap-3">
-                <Button className="w-full" onClick={exportBackup}><Download size={16} />立即备份</Button>
+                <Button className="w-full" onClick={() => void exportBackup()} disabled={isProcessingBackup}><Download size={16} />{isProcessingBackup ? '正在处理…' : '立即备份'}</Button>
                 <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => importBackup(event.target.files?.[0])} />
-                <GhostButton className="w-full" onClick={() => fileRef.current?.click()}><Upload size={16} />恢复备份</GhostButton>
+                <GhostButton className="w-full" onClick={() => fileRef.current?.click()} disabled={isProcessingBackup}><Upload size={16} />恢复备份</GhostButton>
                 <Panel>
                   <p className="text-xs text-slate-500">上次备份时间</p>
                   <p className="mt-1 text-sm font-medium text-slate-900">{lastBackupText}</p>
@@ -135,7 +160,7 @@ export function Settings() {
           </Card>
 
           <Card>
-            <SectionTitle title="本地存储空间统计" caption="帮助用户理解当前资料库体量和备份状态。" />
+            <SectionTitle title="本地存储空间统计" caption="统计学习数据和已上传附件的合计体积。" />
             <div className="grid gap-3 md:grid-cols-5">
               <StorageStat icon={<Database size={16} />} label="资料数量" value={`${store.resources.length}`} />
               <StorageStat icon={<ShieldCheck size={16} />} label="错题数量" value={`${store.mistakes.length}`} />
@@ -213,7 +238,7 @@ export function Settings() {
                 </Select>
               </label>
               <Panel>
-                <p className="text-sm leading-6 text-slate-600">备份文件会自动命名为「上岸资料库-备份-日期.json」，用户无需理解 JSON，也能完成迁移和恢复。</p>
+                <p className="text-sm leading-6 text-slate-600">备份文件会自动带上日期和时间，并包含已上传附件。附件较多时，生成和恢复可能需要稍等片刻。</p>
               </Panel>
             </div>
           </Card>
@@ -221,30 +246,35 @@ export function Settings() {
           <Card>
             <SectionTitle title="主题选择" caption="夜间模式适合晚上复盘或长时间整理资料。" />
             <div className="grid gap-3">
-              <label className="grid gap-2 text-sm font-medium text-slate-700">
-                界面主题
-                <Select value={store.settings.theme} onChange={(event) => store.updateSettings({ theme: event.target.value as ThemeMode })}>
-                  <option value="light">浅色模式</option>
-                  <option value="dark">夜间模式</option>
-                  <option value="system">跟随系统</option>
-                </Select>
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <Panel className="bg-white">
-                  <SunMedium size={17} className="mb-2 text-blue-600" />
-                  <p className="text-xs text-slate-500">白天整理资料</p>
-                </Panel>
-                <Panel className="bg-slate-950 text-white ring-slate-800">
-                  <Moon size={17} className="mb-2 text-blue-300" />
-                  <p className="text-xs text-slate-300">夜间复盘错题</p>
-                </Panel>
+              <div className="grid grid-cols-3 gap-2" role="group" aria-label="界面主题">
+                {([
+                  { value: 'light', label: '浅色', icon: SunMedium },
+                  { value: 'dark', label: '夜间', icon: Moon },
+                  { value: 'system', label: '跟随系统', icon: Monitor },
+                ] as Array<{ value: ThemeMode; label: string; icon: typeof SunMedium }>).map((option) => {
+                  const Icon = option.icon
+                  const active = store.settings.theme === option.value
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => store.updateSettings({ theme: option.value })}
+                      className={`flex min-h-20 min-w-0 flex-col items-center justify-center gap-2 rounded-xl px-2 text-xs font-medium ring-1 transition focus:outline-none focus:ring-2 focus:ring-blue-300 ${active ? 'bg-blue-600 text-white ring-blue-600' : 'bg-slate-50 text-slate-600 ring-slate-200 hover:bg-blue-50 hover:text-blue-700'}`}
+                    >
+                      <Icon size={18} />
+                      <span className="text-wrap text-center">{option.label}</span>
+                    </button>
+                  )
+                })}
               </div>
+              <p className="text-xs leading-5 text-slate-500">切换后会立即应用到侧栏、导航、卡片、表单和文件预览界面。</p>
             </div>
           </Card>
 
           <Card>
             <SectionTitle title="清空数据" caption="恢复为空白初始状态。" />
-            <DangerButton className="w-full" onClick={() => { if (confirm('确认清空所有本地数据？此操作会恢复为空白初始状态。')) { store.resetData(); setMessage('已清空数据，系统已恢复为空白初始状态。') } }}><RotateCcw size={16} />清空数据</DangerButton>
+            <DangerButton className="w-full" onClick={() => void resetAllData()}><RotateCcw size={16} />清空数据和附件</DangerButton>
           </Card>
         </div>
       </div>
@@ -289,6 +319,22 @@ function StorageStat({ icon, label, value }: { icon: ReactNode; label: string; v
 function getLocalStorageBytes() {
   const value = localStorage.getItem(STORAGE_KEY) ?? ''
   return new Blob([value]).size
+}
+
+function getAttachments(data: AppData) {
+  return [
+    ...data.resources.flatMap((resource) => resource.attachments),
+    ...data.mistakes.flatMap((mistake) => mistake.attachments),
+  ]
+}
+
+function getAttachmentCount(data: AppData) {
+  return new Set(getAttachments(data).map((file) => file.storageKey || file.id)).size
+}
+
+function getAttachmentBytes(data: AppData) {
+  const uniqueFiles = new Map(getAttachments(data).map((file) => [file.storageKey || file.id, file]))
+  return Array.from(uniqueFiles.values()).reduce((sum, file) => sum + file.size, 0)
 }
 
 function formatBytes(bytes: number) {
