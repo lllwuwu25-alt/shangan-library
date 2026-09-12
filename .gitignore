@@ -16,6 +16,8 @@ release-test
 
 # Tauri build outputs
 src-tauri/target
+**/target
+crates/*/Cargo.lock
 
 # Editor directories and files
 .vscode/*
