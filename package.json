@@ -15,6 +15,8 @@
     "desktop:dev": "tauri dev",
     "desktop:build": "tauri build",
     "desktop:icon": "tauri icon assets/app-icon.svg",
+    "license:sync-public-key": "node scripts/sync-license-public-key.mjs",
+    "license:check-release": "node scripts/check-license-release.mjs",
     "offline:package": "npm run build && node scripts/build-offline-package.mjs",
     "mobile:build": "npm run build && npx cap sync",
     "android:add": "npx cap add android",

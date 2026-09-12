@@ -61,6 +61,15 @@ jobs:
       - name: Lint frontend
         run: npm run lint
 
+      - name: Test customer application
+        run: npm test
+
+      - name: Verify commercial release boundary
+        run: npm run license:check-release
+
+      - name: Test customer license verifier
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
       - name: Build desktop app
         run: npm run desktop:build ${{ matrix.build-args }}
         env:

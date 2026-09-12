@@ -39,6 +39,7 @@ jobs:
         run: npm run build:web-demo
         env:
           VITE_BASE_PATH: /shangan-library/
+          VITE_DEMO_MODE: "true"
 
       - name: Add SPA fallback
         run: cp dist/index.html dist/404.html

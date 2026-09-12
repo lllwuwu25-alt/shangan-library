@@ -388,33 +388,33 @@ git commit -m "feat: build developer license issuer app"
 - Produces npm scripts `license:sync-public-key` and `license:check-release`.
 - Sync input is a public export containing exactly key ID `primary-2026`, algorithm `Ed25519`, and one 32-byte Base64URL no-padding public key.
 
-- [ ] **Step 1: Write script tests for public-only sync validation**
+- [x] **Step 1: Write script tests for public-only sync validation**
 
 Use Node tests with temporary files to assert valid public export is accepted; malformed length, padding, unexpected fields, private-key-looking fields, wrong key ID, and wrong algorithm are rejected without modifying the destination.
 
-- [ ] **Step 2: Implement atomic public-key sync**
+- [x] **Step 2: Implement atomic public-key sync**
 
 Parse JSON structurally, reject any property whose normalized name contains `private`, `secret`, or `signing`, decode exactly 32 bytes, and atomically update only the generated public registry block in `src-tauri/src/license/keys.rs`.
 
-- [ ] **Step 3: Implement the release guard**
+- [x] **Step 3: Implement the release guard**
 
 Fail customer builds when `ACTIVE_PUBLIC_KEYS` has no `primary-2026` key, when client source contains signing/private-key APIs, when tracked filenames resemble secret outputs, or when package/Tauri/Cargo versions differ from `0.7.0`. Do not print key material or license strings.
 
-- [ ] **Step 4: Harden CI separation**
+- [x] **Step 4: Harden CI separation**
 
 Run `npm run license:check-release` before all three customer desktop builds. Keep issuer directories out of artifact paths. Keep Pages explicitly on demo mode and document that the demo switch is ignored by Tauri runtime policy.
 
-- [ ] **Step 5: Write operational documentation**
+- [x] **Step 5: Write operational documentation**
 
 Document architecture, exact client and issuer storage locations by OS, official key initialization, two-copy offline backup, restore rehearsal, public-key sync, first-license generation, customer activation, key rotation, release sequence, old `v0.6.1` limitation, and the limits of an offline unbound license.
 
-- [ ] **Step 6: Run script tests**
+- [x] **Step 6: Run script tests**
 
 Run: `npm test`
 
 Expected: sync guard tests and all existing frontend tests PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add scripts package.json .github/workflows docs/LICENSE_ARCHITECTURE.md docs/LICENSE_KEY_MANAGEMENT.md docs/LICENSE_KEY_BACKUP_GUIDE.md docs/LICENSE_RELEASE_PROCESS.md
