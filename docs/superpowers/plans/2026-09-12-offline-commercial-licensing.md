@@ -40,17 +40,17 @@
 - Produces: `LicensePayload`, `LicenseStatus`, `LicenseStateKind`, `LicenseEnvelope`, `ProtocolError`, `encode_payload`, `decode_license`, and constants `SCHEMA_VERSION`, `PRODUCT_ID`, `EDITION`, `LICENSE_TYPE`, `FEATURE_FULL_ACCESS`.
 - License envelope signature covers the exact Base64URL-decoded JSON payload bytes.
 
-- [ ] **Step 1: Write protocol tests before implementation**
+- [x] **Step 1: Write protocol tests before implementation**
 
 Add unit tests in `crates/license-protocol/src/encoding.rs` asserting that a schema-1 payload round-trips through `SL1.<payload>.<signature>`, padding characters are rejected, an empty string returns `InvalidFormat`, malformed Base64URL returns `InvalidEncoding`, malformed JSON returns `InvalidPayload`, and signatures must decode to exactly 64 bytes.
 
-- [ ] **Step 2: Run the protocol tests and confirm failure**
+- [x] **Step 2: Run the protocol tests and confirm failure**
 
 Run: `cargo test --manifest-path crates/license-protocol/Cargo.toml`
 
 Expected: FAIL because the crate and public interfaces do not yet exist.
 
-- [ ] **Step 3: Implement the minimal shared protocol**
+- [x] **Step 3: Implement the minimal shared protocol**
 
 Define the payload exactly as:
 
@@ -72,11 +72,11 @@ pub struct LicensePayload {
 
 `decode_license` splits into exactly three non-empty segments, requires prefix `SL1`, uses `base64::engine::general_purpose::URL_SAFE_NO_PAD`, retains the original payload bytes for signature verification, and parses JSON only into `LicensePayload`. The crate must not depend on `ed25519-dalek`.
 
-- [ ] **Step 4: Record the source audit and bump the app version**
+- [x] **Step 4: Record the source audit and bump the app version**
 
 Write the actual React/Zustand/Tauri/localStorage/IndexedDB/plugin/build findings to `docs/LICENSE_PRECHECK.md`. Change all product version fields from `0.6.1` to `0.7.0` without changing the application name, identifier, data keys, or directory strategy.
 
-- [ ] **Step 5: Run protocol and frontend checks**
+- [x] **Step 5: Run protocol and frontend checks**
 
 Run: `cargo test --manifest-path crates/license-protocol/Cargo.toml`
 
@@ -86,7 +86,7 @@ Run: `npm run build`
 
 Expected: TypeScript and Vite build PASS with version `0.7.0`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add docs/LICENSE_PRECHECK.md crates/license-protocol package.json package-lock.json src-tauri/Cargo.toml src-tauri/tauri.conf.json
@@ -109,25 +109,25 @@ git commit -m "feat: define offline license protocol"
 - Produces: `verify_license(raw: &str, keys: &PublicKeyRegistry, now: i64) -> Result<LicenseStatus, LicenseError>` and `PublicKeyRegistry::from_entries`.
 - `LicenseError` serializes stable codes: `MISSING`, `INVALID_FORMAT`, `INVALID_ENCODING`, `INVALID_PAYLOAD`, `INVALID_SIGNATURE`, `UNSUPPORTED_SCHEMA`, `UNKNOWN_KEY_ID`, `WRONG_PRODUCT`, `UNSUPPORTED_EDITION`, `UNSUPPORTED_LICENSE_TYPE`, `EXPIRED`, `STORAGE_ERROR`.
 
-- [ ] **Step 1: Write failing verifier tests with generated in-memory keys**
+- [x] **Step 1: Write failing verifier tests with generated in-memory keys**
 
 Use `ed25519_dalek::SigningKey::generate(&mut OsRng)` only inside `src-tauri/tests`. Generate signed envelopes at test runtime and assert PASS for a valid license plus FAIL for modified payload bytes, edition, product ID, License ID, signature, random text, empty input, malformed Base64URL, unknown schema, unknown key ID, wrong product, wrong edition/type, and expired payload.
 
-- [ ] **Step 2: Run the verifier test and confirm failure**
+- [x] **Step 2: Run the verifier test and confirm failure**
 
 Run: `cargo test --manifest-path src-tauri/Cargo.toml --test license_verification`
 
 Expected: FAIL because the client license module is absent.
 
-- [ ] **Step 3: Implement public-key-only verification**
+- [x] **Step 3: Implement public-key-only verification**
 
 Implement a registry keyed by `key_id`. Parse enough payload to select the public key, verify the signature over the untouched payload bytes, and only then apply semantic checks. Production `ACTIVE_PUBLIC_KEYS` starts empty until the formal public-key sync; tests inject their runtime public key and never write a private key to disk.
 
-- [ ] **Step 4: Register the module without exposing signing**
+- [x] **Step 4: Register the module without exposing signing**
 
 Add `mod license;` to `src-tauri/src/lib.rs`. Ensure non-test client dependencies enable only Ed25519 verification APIs and no source under `src-tauri/src` imports `SigningKey`.
 
-- [ ] **Step 5: Run tests and client-source security search**
+- [x] **Step 5: Run tests and client-source security search**
 
 Run: `cargo test --manifest-path src-tauri/Cargo.toml --test license_verification`
 
@@ -137,7 +137,7 @@ Run: `rg -n "SigningKey|private_key|sign_license|generate_license|generate_keypa
 
 Expected: no matches.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src-tauri/Cargo.toml src-tauri/src src-tauri/tests/license_verification.rs
