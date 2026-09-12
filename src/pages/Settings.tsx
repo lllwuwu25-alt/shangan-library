@@ -13,6 +13,7 @@ import { knowledgeSnapshot, useKnowledgeStore } from '../features/knowledge-tree
 import type { ResourceFile } from '../features/knowledge-tree/types/knowledge'
 import { useStudyStore } from '../store/useStudyStore'
 import type { AppData, Subject, ThemeMode } from '../types'
+import { LicenseStatusPanel } from '../features/license/LicenseStatusPanel'
 
 type CompleteBackup = AppData & { knowledge?: KnowledgeBackupBundle }
 
@@ -140,6 +141,8 @@ export function Settings() {
       <PageHeader title="设置" description="管理考试信息、数据安全、备份恢复和界面主题。" />
       <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-5">
+          <LicenseStatusPanel />
+
           <Card>
             <SectionTitle title="数据安全中心" caption="一键备份会同时保存计划、资料、错题、番茄钟记录和附件正文。" />
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">

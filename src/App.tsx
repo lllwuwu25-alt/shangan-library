@@ -10,6 +10,7 @@ import { Resources } from './pages/Resources'
 import { Settings } from './pages/Settings'
 import { useStudyStore } from './store/useStudyStore'
 import { startPageTransition } from './lib/pageTransition'
+import { LicenseGate } from './features/license/LicenseGate'
 
 const routes = ['/dashboard', '/plan', '/pomodoro', '/resources', '/mistakes', '/settings', '/contact']
 const basePath = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL.slice(0, -1) : import.meta.env.BASE_URL
@@ -81,17 +82,19 @@ function App() {
   const activePath = routes.includes(path) ? path : '/dashboard'
 
   return (
-    <Layout path={activePath} onNavigate={navigate}>
-      <div key={activePath} className="route-content">
-        {activePath === '/dashboard' && <Dashboard go={navigate} />}
-        {activePath === '/plan' && <Plan />}
-        {activePath === '/pomodoro' && <Pomodoro />}
-        {activePath === '/resources' && <Resources />}
-        {activePath === '/mistakes' && <Mistakes />}
-        {activePath === '/settings' && <Settings />}
-        {activePath === '/contact' && <Contact />}
-      </div>
-    </Layout>
+    <LicenseGate>
+      <Layout path={activePath} onNavigate={navigate}>
+        <div key={activePath} className="route-content">
+          {activePath === '/dashboard' && <Dashboard go={navigate} />}
+          {activePath === '/plan' && <Plan />}
+          {activePath === '/pomodoro' && <Pomodoro />}
+          {activePath === '/resources' && <Resources />}
+          {activePath === '/mistakes' && <Mistakes />}
+          {activePath === '/settings' && <Settings />}
+          {activePath === '/contact' && <Contact />}
+        </div>
+      </Layout>
+    </LicenseGate>
   )
 }
 

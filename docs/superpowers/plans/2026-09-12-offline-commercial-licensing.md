@@ -208,33 +208,33 @@ git commit -m "feat: persist and expose offline license status"
 - Produces: `isTauriRuntime()`, `getLicenseStatus()`, `activateLicense(raw)`, `deactivateLicense()`, and `LicenseGate`.
 - `LicenseGate` accepts `children: ReactNode`; Tauri Missing/Invalid renders activation, Valid renders children, non-Tauri demo renders children with a demo marker, and non-demo Web renders a desktop-only message.
 
-- [ ] **Step 1: Write failing policy and message tests**
+- [x] **Step 1: Write failing policy and message tests**
 
 Test pure runtime-policy resolution for desktop valid/missing/error, Web demo, and accidental non-demo Web builds. Test every Rust error code maps to a human-readable Chinese message and unknown errors map to a generic retry/copy-completeness message.
 
-- [ ] **Step 2: Run tests and confirm failure**
+- [x] **Step 2: Run tests and confirm failure**
 
 Run: `npm test -- src/features/license/license.test.ts`
 
 Expected: FAIL because license frontend modules do not exist.
 
-- [ ] **Step 3: Implement Tauri IPC client and gate**
+- [x] **Step 3: Implement Tauri IPC client and gate**
 
 Use dynamic import of `@tauri-apps/api/core` only inside confirmed Tauri runtime paths. Never write license status or raw license to localStorage. Render an initial checking state to avoid flashing the full app before verification.
 
-- [ ] **Step 4: Implement activation and success states**
+- [x] **Step 4: Implement activation and success states**
 
 Use a multiline paste field that does not visually truncate long codes, one primary Activate button, local-only privacy copy, loading/disabled states, keyboard-safe focus, and an activation-success state showing Pro/lifetime before the user enters the app.
 
-- [ ] **Step 5: Add authorization status to Settings**
+- [x] **Step 5: Add authorization status to Settings**
 
 Display edition, active state, lifetime type, License ID, app version, copy License ID, and a subdued remove action with confirmation. The remove action calls only the license command and must not call `resetData`, IndexedDB deletion, backup, or restore functions.
 
-- [ ] **Step 6: Integrate the Gate above the existing app shell**
+- [x] **Step 6: Integrate the Gate above the existing app shell**
 
 Wrap the existing route/page application in `LicenseGate` before `Layout` renders. Add a compact “网页演示版” marker to non-Tauri demo builds and confirm the existing PageTransition behavior remains inside the unlocked app.
 
-- [ ] **Step 7: Verify frontend behavior**
+- [x] **Step 7: Verify frontend behavior**
 
 Run: `npm test`
 
@@ -248,7 +248,7 @@ Run: `npm run build` and `npm run build:web-demo`
 
 Expected: both production and demo builds PASS; only demo mode can open the non-Tauri app.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/App.tsx src/components/Layout.tsx src/pages/Settings.tsx src/index.css src/features/license
