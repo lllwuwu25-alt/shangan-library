@@ -157,31 +157,31 @@ git commit -m "feat: verify customer licenses in Rust"
 - Produces: `LicenseStore::new(PathBuf)`, `read_raw`, `write_raw_atomic`, `remove`; Tauri commands `activate_license`, `get_license_status`, `deactivate_license`.
 - Commands return `LicenseStatus` or a serializable `LicenseCommandError { code, message }` and never return public keys, signatures, raw licenses, or storage paths.
 
-- [ ] **Step 1: Write failing storage lifecycle tests**
+- [x] **Step 1: Write failing storage lifecycle tests**
 
 Use a temporary directory and injected verifier registry. Assert Missing on first read, Valid after activation, Valid after reconstructing runtime state to simulate restart, Invalid after mutating `license.dat`, Missing after deletion, and unchanged sentinel business-data files throughout.
 
-- [ ] **Step 2: Run the storage test and confirm failure**
+- [x] **Step 2: Run the storage test and confirm failure**
 
 Run: `cargo test --manifest-path src-tauri/Cargo.toml --test license_storage`
 
 Expected: FAIL because storage and commands do not exist.
 
-- [ ] **Step 3: Implement isolated atomic storage**
+- [x] **Step 3: Implement isolated atomic storage**
 
 Resolve `app.path().app_config_dir()?.join("license.dat")`, create only that parent directory, write to a temporary sibling, flush, and rename. Trim surrounding whitespace on activation but preserve the complete SL1 string. `deactivate_license` removes only `license.dat`; a missing file is success.
 
-- [ ] **Step 4: Register commands and startup state**
+- [x] **Step 4: Register commands and startup state**
 
 Register all three commands using `tauri::generate_handler!`. Runtime state may cache a verified status for the current process, but `get_license_status` on startup must read and verify the raw file before reporting Valid.
 
-- [ ] **Step 5: Run all Rust client tests**
+- [x] **Step 5: Run all Rust client tests**
 
 Run: `cargo test --manifest-path src-tauri/Cargo.toml`
 
 Expected: protocol, verifier, storage, and command-domain tests PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src-tauri/src src-tauri/tests

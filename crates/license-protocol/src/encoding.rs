@@ -55,7 +55,8 @@ pub fn decode_license(raw: &str) -> Result<LicenseEnvelope, ProtocolError> {
     let signature = signature_bytes
         .try_into()
         .map_err(|_| ProtocolError::InvalidEncoding)?;
-    let payload = serde_json::from_slice(&payload_bytes).map_err(|_| ProtocolError::InvalidPayload)?;
+    let payload =
+        serde_json::from_slice(&payload_bytes).map_err(|_| ProtocolError::InvalidPayload)?;
 
     Ok(LicenseEnvelope {
         payload,
@@ -101,24 +102,36 @@ mod tests {
     #[test]
     fn rejects_empty_and_structurally_invalid_values() {
         assert_eq!(decode_license(""), Err(ProtocolError::InvalidFormat));
-        assert_eq!(decode_license("SL1.only-two"), Err(ProtocolError::InvalidFormat));
+        assert_eq!(
+            decode_license("SL1.only-two"),
+            Err(ProtocolError::InvalidFormat)
+        );
         assert_eq!(decode_license("SL2.a.b"), Err(ProtocolError::InvalidFormat));
-        assert_eq!(decode_license("SL1.a.b.extra"), Err(ProtocolError::InvalidFormat));
+        assert_eq!(
+            decode_license("SL1.a.b.extra"),
+            Err(ProtocolError::InvalidFormat)
+        );
     }
 
     #[test]
     fn rejects_padding_and_malformed_base64url() {
-        assert_eq!(decode_license("SL1.e30=.AAAA"), Err(ProtocolError::InvalidEncoding));
-        assert_eq!(decode_license("SL1.e30.A+AA"), Err(ProtocolError::InvalidEncoding));
+        assert_eq!(
+            decode_license("SL1.e30=.AAAA"),
+            Err(ProtocolError::InvalidEncoding)
+        );
+        assert_eq!(
+            decode_license("SL1.e30.A+AA"),
+            Err(ProtocolError::InvalidEncoding)
+        );
     }
 
     #[test]
     fn rejects_malformed_json_and_wrong_signature_length() {
-        let malformed_json = format!(
-            "SL1.bm90LWpzb24.{}",
-            URL_SAFE_NO_PAD.encode([0_u8; 64]),
+        let malformed_json = format!("SL1.bm90LWpzb24.{}", URL_SAFE_NO_PAD.encode([0_u8; 64]),);
+        assert_eq!(
+            decode_license(&malformed_json),
+            Err(ProtocolError::InvalidPayload)
         );
-        assert_eq!(decode_license(&malformed_json), Err(ProtocolError::InvalidPayload));
 
         let payload_bytes = encode_payload(&payload()).unwrap();
         let short_signature = [1_u8; 63];

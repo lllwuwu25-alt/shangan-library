@@ -54,5 +54,17 @@ impl LicenseStatus {
             features: Vec::new(),
         }
     }
-}
 
+    pub fn invalid() -> Self {
+        Self {
+            state: LicenseStateKind::Invalid,
+            valid: false,
+            edition: None,
+            license_type: None,
+            license_id: None,
+            issued_at: None,
+            expires_at: None,
+            features: Vec::new(),
+        }
+    }
+}

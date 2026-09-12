@@ -34,7 +34,10 @@ pub fn verify_license(
     if payload.license_type != LICENSE_TYPE {
         return Err(LicenseError::UnsupportedLicenseType);
     }
-    if payload.expires_at.is_some_and(|expires_at| expires_at <= now) {
+    if payload
+        .expires_at
+        .is_some_and(|expires_at| expires_at <= now)
+    {
         return Err(LicenseError::Expired);
     }
 

@@ -57,4 +57,3 @@ impl From<ProtocolError> for LicenseError {
         }
     }
 }
-

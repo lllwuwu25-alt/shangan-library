@@ -35,4 +35,3 @@ pub const ACTIVE_PUBLIC_KEYS: &[(&str, [u8; 32])] = &[];
 pub fn active_public_keys() -> Result<PublicKeyRegistry, LicenseError> {
     PublicKeyRegistry::from_entries(ACTIVE_PUBLIC_KEYS.iter().copied())
 }
-
