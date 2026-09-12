@@ -22,6 +22,11 @@
 
 html {
   overflow-wrap: anywhere;
+  scrollbar-gutter: stable;
+}
+
+@supports not (scrollbar-gutter: stable) {
+  html { overflow-y: scroll; }
 }
 
 body {
@@ -254,6 +259,48 @@ textarea {
   color: oklch(0.28 0.1 252);
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+html[data-page-reveal="active"]::view-transition-group(root),
+html[data-page-reveal="active"]::view-transition-old(root),
+html[data-page-reveal="active"]::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html[data-page-reveal="active"]::view-transition-old(root) {
+  z-index: 1;
+}
+
+html[data-page-reveal="active"]::view-transition-new(root) {
+  z-index: 2;
+  clip-path: circle(0);
+  will-change: clip-path;
+}
+
+.page-transition-previous {
+  position: fixed;
+  z-index: 99;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.page-transition-previous * {
+  animation-play-state: paused !important;
+}
+
+.page-transition-current {
+  position: relative;
+  z-index: 100;
+  height: 100vh;
+  overflow: hidden;
+  will-change: clip-path;
+}
+
 .preview-docx {
   line-height: 1.8;
   overflow-wrap: anywhere;
@@ -311,4 +358,52 @@ textarea {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
   }
+
+}
+/* A brief full-screen acknowledgement, including native fullscreen mode. */
+.focus-completion {
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  width: 100%;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  border: 0;
+  padding: 28px;
+  color: #fff;
+  background: #111315;
+  overflow: hidden;
+  isolation: isolate;
+  animation: focus-stage 4800ms both;
+}
+.focus-completion::backdrop { background: transparent; }
+.focus-completion-content { position: relative; z-index: 2; min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px; padding: 48px 0; }
+.focus-completion-content h2 { font-size: 64px; font-weight: 750; line-height: 1.2; color: #fff; letter-spacing: 0; }
+.focus-completion-label { font-size: 15px; color: #dce8ff; }
+.focus-completion-minutes { font-size: 24px; line-height: 1.5; font-weight: 600; font-variant-numeric: tabular-nums; color: #b1f0d4; }
+.focus-completion-minutes span { margin-left: 8px; font-size: 16px; font-weight: 400; }
+.focus-completion-task { max-width: min(40ch, 85%); max-height: 4.5em; overflow: auto; overflow-wrap: anywhere; font-size: 16px; color: #dce8ff; }
+.focus-completion-content > * { animation: focus-copy 650ms 750ms cubic-bezier(.16,1,.3,1) both; }
+.focus-completion-content h2 span { display: inline-block; animation: focus-word 750ms 650ms cubic-bezier(.16,1,.3,1) both; }
+.focus-completion-content h2 span + span { animation-delay: 780ms; }
+.focus-completion-content > .focus-completion-task { animation-delay: 1000ms; }
+.focus-completion-close { z-index: 5; position: absolute; right: 20px; top: 20px; display: grid; place-items: center; width: 44px; height: 44px; color: #fff; border-radius: 8px; background: #ffffff18; cursor: pointer; }
+.focus-completion-close:focus-visible { outline: 2px solid white; outline-offset: 4px; }
+.focus-completion-sweep { position: absolute; z-index: 3; inset: -40%; border: 150px solid #ff6429; border-radius: 42%; pointer-events: none; animation: focus-sweep 1000ms cubic-bezier(.65,0,.25,1) both; }
+.focus-completion-ribbons { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.focus-ribbon { fill: none; stroke: #ff6429; stroke-width: 70; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: focus-ribbon 3000ms 950ms cubic-bezier(.4,0,.2,1) both; }
+.focus-ribbon-bottom { stroke: #ffad42; stroke-width: 48; animation-delay: 1300ms; }
+.focus-completion-particles { position: absolute; inset: 0; pointer-events: none; }
+.focus-completion-particles span { position: absolute; left: var(--x); top: var(--y); width: var(--size); height: var(--size); color: #dce8e8; animation: focus-particle 3500ms var(--delay) cubic-bezier(.16,1,.3,1) both; }
+@keyframes focus-stage { 0% { clip-path: inset(100% 0 0); } 12%,90% { clip-path: inset(0); transform: translateY(0); } 100% { clip-path: inset(0); transform: translateY(-105%); } }
+@keyframes focus-sweep { 0% { transform: translate(-40%,80%) rotate(-60deg) scale(.7); } 100% { transform: translate(60%,-100%) rotate(45deg) scale(1.4); } }
+@keyframes focus-ribbon { 0% { stroke-dashoffset: 1; } 45%,70% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -1; } }
+@keyframes focus-word { from { opacity: 0; transform: translateY(38px) rotate(8deg) scale(.85); } to { opacity: 1; transform: none; } }
+@keyframes focus-particle { 0% { opacity: 0; transform: translate(0,100px) scale(.2) rotate(-60deg); } 18% { opacity: .8; } 70% { opacity: .65; } 100% { opacity: 0; transform: translate(16px,-85px) scale(1.1) rotate(var(--turn)); } }
+@keyframes focus-copy { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 480px) { .focus-completion-content h2 { font-size: 40px; } .focus-completion-sweep { border-width: 90px; } }
+@media (prefers-reduced-motion: reduce) {
+  .focus-completion, .focus-completion * { animation: none !important; }
+  .focus-completion-sweep, .focus-completion-ribbons, .focus-completion-particles { display: none; }
 }

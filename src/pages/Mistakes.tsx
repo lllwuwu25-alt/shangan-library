@@ -1,11 +1,12 @@
 import { FileStack, Paperclip, Plus, Search, Trash2, Upload } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { AttachmentList, UploadHint } from '../components/AttachmentList'
+import { FilePicker } from '../components/FilePicker'
 import { FilePreviewModal } from '../components/FilePreviewModal'
 import { PageHeader } from '../components/Layout'
 import { Button, Card, DangerButton, EmptyState, GhostButton, Pill, SectionTitle, Select, TextArea, TextInput } from '../components/ui'
 import { defaultSubjects, subjectOptions } from '../constants'
-import { fileNameWithoutExtension, filesToAttachments } from '../lib/files'
+import { fileNameWithoutExtension } from '../lib/files'
 import { useStudyStore } from '../store/useStudyStore'
 import type { FileAttachment, Mistake, MistakeImportance, MistakeStatus, Subject } from '../types'
 
@@ -108,17 +109,14 @@ export function Mistakes() {
               <TextArea placeholder="题目或错误点" value={question} onChange={(event) => setQuestion(event.target.value)} />
               <TextArea placeholder="正确答案 / 思路" value={answer} onChange={(event) => setAnswer(event.target.value)} />
               <TextInput placeholder="复盘备注" value={note} onChange={(event) => setNote(event.target.value)} />
-              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-blue-200 bg-blue-50 px-3 py-5 text-center text-sm font-medium text-blue-700 transition hover:bg-blue-100">
+              <FilePicker
+                className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-blue-200 bg-blue-50 px-3 py-5 text-center text-sm font-medium text-blue-700 transition hover:bg-blue-100 disabled:cursor-wait disabled:opacity-70"
+                onFiles={(nextFiles) => setAttachments((current) => [...current, ...nextFiles])}
+              >
                 <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><Upload size={17} /></span>
                 <span className="text-wrap leading-5">上传题目截图 / PDF / Word / Excel 等文件</span>
-                <UploadHint>点击附件名可预览 Word / Excel / PDF / 图片</UploadHint>
-                <input type="file" multiple className="hidden" onChange={async (event) => {
-                  if (!event.target.files) return
-                  const nextFiles = await filesToAttachments(event.target.files)
-                  setAttachments((current) => [...current, ...nextFiles])
-                  event.target.value = ''
-                }} />
-              </label>
+                <UploadHint>桌面版会保留原文件位置，可直接预览或在文件夹中显示</UploadHint>
+              </FilePicker>
               <AttachmentList attachments={attachments} compact onOpen={setPreviewFile} onRemove={(id) => setAttachments((current) => current.filter((item) => item.id !== id))} />
               <Button className="w-full" onClick={() => { if (!question.trim()) return; addMistake({ subject: safeNewSubject, question, answer, note, status: '待复习', importance, attachments }); setQuestion(''); setAnswer(''); setNote(''); setAttachments([]); setImportance('黄') }}><Plus size={16} />新增错题</Button>
             </div>
@@ -132,13 +130,9 @@ export function Mistakes() {
                 <option>黄</option>
                 <option>绿</option>
               </Select>
-              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-sm font-medium text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700">
-                <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><FileStack size={17} /></span>
-                <span className="text-wrap leading-5">批量选择错题文件</span>
-                <span className="text-wrap text-xs font-normal leading-5 text-slate-500">每个文件会生成一条待复习错题</span>
-                <input type="file" multiple className="hidden" onChange={async (event) => {
-                  if (!event.target.files?.length) return
-                  const nextFiles = await filesToAttachments(event.target.files)
+              <FilePicker
+                className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-3 py-5 text-center text-sm font-medium text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-wait disabled:opacity-70"
+                onFiles={(nextFiles) => {
                   addMistakes(nextFiles.map((file) => ({
                     subject: safeBatchSubject,
                     question: fileNameWithoutExtension(file.name),
@@ -149,9 +143,12 @@ export function Mistakes() {
                     attachments: [file],
                   })))
                   setBatchMessage(`已批量导入 ${nextFiles.length} 条错题。`)
-                  event.target.value = ''
-                }} />
-              </label>
+                }}
+              >
+                <span className="flex size-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm"><FileStack size={17} /></span>
+                <span className="text-wrap leading-5">批量选择错题文件</span>
+                <span className="text-wrap text-xs font-normal leading-5 text-slate-500">每个文件会生成一条待复习错题</span>
+              </FilePicker>
               {batchMessage && <p className="rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-800">{batchMessage}</p>}
             </div>
           </Card>
@@ -182,16 +179,13 @@ function MistakeAttachments({
 }) {
   return (
     <div className="mt-3">
-      <label className="inline-flex max-w-full cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
+      <FilePicker
+        className="inline-flex max-w-full cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-70"
+        onFiles={(nextFiles) => updateMistake(item.id, { attachments: [...item.attachments, ...nextFiles] })}
+      >
         <Paperclip size={15} />
         添加文件
-        <input type="file" multiple className="hidden" onChange={async (event) => {
-          if (!event.target.files) return
-          const nextFiles = await filesToAttachments(event.target.files)
-          updateMistake(item.id, { attachments: [...item.attachments, ...nextFiles] })
-          event.target.value = ''
-        }} />
-      </label>
+      </FilePicker>
       <AttachmentList
         attachments={item.attachments}
         onOpen={setPreviewFile}

@@ -6,6 +6,10 @@
     "main"
   ],
   "permissions": [
-    "core:default"
+    "core:default",
+    "dialog:allow-open",
+    "fs:allow-read-file",
+    "fs:allow-stat",
+    "opener:allow-reveal-item-in-dir"
   ]
 }

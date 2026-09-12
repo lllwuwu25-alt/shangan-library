@@ -1,21 +1,31 @@
 import { Bell, Database, Download, HardDrive, Monitor, Moon, Plus, RotateCcw, ShieldCheck, SunMedium, Trash2, Upload } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { PageHeader } from '../components/Layout'
 import { Button, Card, DangerButton, GhostButton, Panel, SectionTitle, Select, TextInput } from '../components/ui'
 import { defaultResourceCategories, defaultSubjects, subjectOptions } from '../constants'
 import { embedAttachmentsForBackup, restoreAttachmentsFromBackup } from '../lib/files'
 import { clearAttachmentBlobs } from '../lib/fileStorage'
 import { normalizeAppData, STORAGE_KEY } from '../lib/storage'
+import { createKnowledgeBackup, isKnowledgeBackup, restoreKnowledgeBackup, type KnowledgeBackupBundle } from '../features/knowledge-tree/services/backup'
+import { migrateLegacyResources } from '../features/knowledge-tree/services/migration'
+import { knowledgeSnapshot, useKnowledgeStore } from '../features/knowledge-tree/store/knowledgeStore'
+import type { ResourceFile } from '../features/knowledge-tree/types/knowledge'
 import { useStudyStore } from '../store/useStudyStore'
 import type { AppData, Subject, ThemeMode } from '../types'
 
+type CompleteBackup = AppData & { knowledge?: KnowledgeBackupBundle }
+
 export function Settings() {
   const store = useStudyStore()
+  const knowledge = useKnowledgeStore()
   const fileRef = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState('')
   const [newSubject, setNewSubject] = useState('')
   const [isProcessingBackup, setIsProcessingBackup] = useState(false)
+  const initializeKnowledge = knowledge.initialize
+
+  useEffect(() => { void initializeKnowledge(store.resources) }, [initializeKnowledge, store.resources])
 
   const data: AppData = {
     tasks: store.tasks,
@@ -25,7 +35,8 @@ export function Settings() {
     pomodoroSessions: store.pomodoroSessions,
     settings: store.settings,
   }
-  const attachmentBytes = getAttachmentBytes(data)
+  const knowledgeResources = knowledge.initialized ? knowledge.nodes.filter((node) => !node.archived && ['document', 'note', 'image', 'video', 'link', 'mistake'].includes(node.type)).length : store.resources.length
+  const attachmentBytes = getAttachmentBytes(data, knowledge.files)
   const storageBytes = getLocalStorageBytes() + attachmentBytes
   const lastBackupText = store.settings.lastBackupAt ? formatDateTime(store.settings.lastBackupAt) : '从未备份'
   const reminderStatus = getBackupReminderStatus(store.settings.lastBackupAt, store.settings.backupReminderDays)
@@ -70,7 +81,10 @@ export function Settings() {
           lastBackupAt: backedUpAt,
         },
       })
-      const blob = new Blob([JSON.stringify(backupData)], { type: 'application/json' })
+      await useKnowledgeStore.getState().initialize(store.resources)
+      const knowledgeBackup = await createKnowledgeBackup(knowledgeSnapshot())
+      const completeBackup: CompleteBackup = { ...backupData, knowledge: knowledgeBackup }
+      const blob = new Blob([JSON.stringify(completeBackup)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       const time = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`
@@ -79,7 +93,7 @@ export function Settings() {
       link.click()
       window.setTimeout(() => URL.revokeObjectURL(url), 1000)
       store.updateSettings({ lastBackupAt: backedUpAt })
-      setMessage(`完整备份已生成，包含学习数据和 ${getAttachmentCount(data)} 个附件。`)
+      setMessage(`完整备份已生成，包含知识树和 ${knowledgeBackup.data.files.length} 个资料文件。`)
     } catch {
       setMessage('备份失败：有附件正文无法读取。请确认附件仍可预览后再试。')
     } finally {
@@ -93,13 +107,18 @@ export function Settings() {
     setMessage('正在读取备份并恢复附件，请稍候…')
     try {
       const text = await file.text()
-      const imported = JSON.parse(text) as Partial<AppData>
+      const imported = JSON.parse(text) as Partial<CompleteBackup>
       if (!Array.isArray(imported.tasks) || !Array.isArray(imported.resources) || !Array.isArray(imported.mistakes) || !imported.settings) {
         throw new Error('数据结构不完整')
       }
       const restored = await restoreAttachmentsFromBackup(normalizeAppData(imported))
       store.importData(restored)
-      setMessage(`恢复成功，学习数据和 ${getAttachmentCount(restored)} 个附件已写入本地。`)
+      if (isKnowledgeBackup(imported.knowledge)) {
+        await knowledge.replaceData(await restoreKnowledgeBackup(imported.knowledge))
+      } else {
+        await knowledge.replaceData(migrateLegacyResources(restored.resources).data)
+      }
+      setMessage(`恢复成功，学习数据、知识树和 ${getAttachmentCount(restored)} 个旧版附件已写入本地。`)
     } catch {
       setMessage('恢复失败，请选择上岸资料库生成的完整备份文件。')
     } finally {
@@ -111,6 +130,7 @@ export function Settings() {
   const resetAllData = async () => {
     if (!confirm('确认清空所有本地数据和附件？此操作无法撤销，建议先立即备份。')) return
     await clearAttachmentBlobs()
+    await knowledge.clearKnowledge()
     store.resetData()
     setMessage('已清空学习数据和本地附件，系统已恢复为空白初始状态。')
   }
@@ -135,7 +155,7 @@ export function Settings() {
                   </div>
                 </div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                  <Metric label="资料" value={`${store.resources.length} 份`} />
+                  <Metric label="资料" value={`${knowledgeResources} 份`} />
                   <Metric label="错题" value={`${store.mistakes.length} 条`} />
                   <Metric label="计划" value={`${store.tasks.length} 个`} />
                 </div>
@@ -162,7 +182,7 @@ export function Settings() {
           <Card>
             <SectionTitle title="本地存储空间统计" caption="统计学习数据和已上传附件的合计体积。" />
             <div className="grid gap-3 md:grid-cols-5">
-              <StorageStat icon={<Database size={16} />} label="资料数量" value={`${store.resources.length}`} />
+              <StorageStat icon={<Database size={16} />} label="资料数量" value={`${knowledgeResources}`} />
               <StorageStat icon={<ShieldCheck size={16} />} label="错题数量" value={`${store.mistakes.length}`} />
               <StorageStat icon={<HardDrive size={16} />} label="学习计划" value={`${store.tasks.length}`} />
               <StorageStat icon={<Download size={16} />} label="最近备份" value={store.settings.lastBackupAt ? '已备份' : '未备份'} />
@@ -332,8 +352,9 @@ function getAttachmentCount(data: AppData) {
   return new Set(getAttachments(data).map((file) => file.storageKey || file.id)).size
 }
 
-function getAttachmentBytes(data: AppData) {
-  const uniqueFiles = new Map(getAttachments(data).map((file) => [file.storageKey || file.id, file]))
+function getAttachmentBytes(data: AppData, knowledgeFiles: ResourceFile[] = []) {
+  const uniqueFiles = new Map<string, { size: number }>(getAttachments(data).map((file) => [file.storageKey || file.id, file]))
+  knowledgeFiles.forEach((file) => uniqueFiles.set(file.storageKey || file.id, file))
   return Array.from(uniqueFiles.values()).reduce((sum, file) => sum + file.size, 0)
 }
 

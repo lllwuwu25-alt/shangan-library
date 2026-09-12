@@ -9,6 +9,8 @@ declare module 'lucide-react' {
   export type LucideIcon = ComponentType<LucideProps>
 
   export const AlertTriangle: LucideIcon
+  export const AlertCircle: LucideIcon
+  export const ArrowLeft: LucideIcon
   export const ArrowRight: LucideIcon
   export const Bell: LucideIcon
   export const BookOpen: LucideIcon
@@ -16,6 +18,7 @@ declare module 'lucide-react' {
   export const CalendarDays: LucideIcon
   export const Check: LucideIcon
   export const CheckCircle2: LucideIcon
+  export const ChevronRight: LucideIcon
   export const CircleAlert: LucideIcon
   export const Clock: LucideIcon
   export const Clock3: LucideIcon
@@ -23,22 +26,33 @@ declare module 'lucide-react' {
   export const Database: LucideIcon
   export const Download: LucideIcon
   export const Eye: LucideIcon
+  export const ExternalLink: LucideIcon
   export const File: LucideIcon
   export const FileImage: LucideIcon
+  export const FilePlus2: LucideIcon
   export const FileStack: LucideIcon
   export const FileText: LucideIcon
   export const Flame: LucideIcon
+  export const Folder: LucideIcon
+  export const FolderInput: LucideIcon
+  export const FolderPlus: LucideIcon
+  export const GraduationCap: LucideIcon
+  export const Grid2X2: LucideIcon
   export const HardDrive: LucideIcon
+  export const Heart: LucideIcon
   export const Home: LucideIcon
   export const Import: LucideIcon
   export const Library: LucideIcon
   export const Link: LucideIcon
+  export const Link2: LucideIcon
+  export const LayoutList: LucideIcon
   export const ListTodo: LucideIcon
   export const Mail: LucideIcon
   export const MessageCircle: LucideIcon
   export const Maximize2: LucideIcon
   export const Minimize2: LucideIcon
   export const Monitor: LucideIcon
+  export const MoreHorizontal: LucideIcon
   export const Moon: LucideIcon
   export const Paperclip: LucideIcon
   export const Pause: LucideIcon
@@ -51,6 +65,7 @@ declare module 'lucide-react' {
   export const Settings: LucideIcon
   export const ShieldCheck: LucideIcon
   export const Sparkles: LucideIcon
+  export const Tag: LucideIcon
   export const Sun: LucideIcon
   export const SunMedium: LucideIcon
   export const Timer: LucideIcon
@@ -59,4 +74,7 @@ declare module 'lucide-react' {
   export const TriangleAlert: LucideIcon
   export const Upload: LucideIcon
   export const X: LucideIcon
+  export const Boxes: LucideIcon
+  export const NotebookPen: LucideIcon
+  export const PlaySquare: LucideIcon
 }

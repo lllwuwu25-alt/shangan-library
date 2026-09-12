@@ -1,6 +1,5 @@
 import {
   CalendarDays,
-  Check,
   ListTodo,
   Maximize2,
   Minimize2,
@@ -9,7 +8,8 @@ import {
   RotateCcw,
   Trash2,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FocusCompletion } from '../components/FocusCompletion'
 import { PageHeader } from '../components/Layout'
 import { Button, Card, DangerButton, EmptyState, GhostButton, SectionTitle, Select, StatCard, TextInput } from '../components/ui'
 import { defaultSubjects, subjectOptions } from '../constants'
@@ -24,6 +24,9 @@ const modeOptions: Array<{ mode: TimerMode; minutes: number; label: string }> = 
   { mode: '短休息', minutes: 5, label: '5 分钟短休息' },
   { mode: '长休息', minutes: 15, label: '15 分钟长休息' },
 ]
+
+const focusPresets = [25, 45, 60, 90, 120]
+const maxTimerMinutes = 12 * 60
 
 const formatClock = (seconds: number) => {
   const minutes = Math.floor(seconds / 60)
@@ -52,30 +55,50 @@ export function Pomodoro() {
   const [customMinutes, setCustomMinutes] = useState(25)
   const [remainingSeconds, setRemainingSeconds] = useState(25 * 60)
   const [isRunning, setIsRunning] = useState(false)
+  const [hasStarted, setHasStarted] = useState(false)
   const [isFocusView, setIsFocusView] = useState(false)
   const [title, setTitle] = useState('专注学习')
   const [subject, setSubject] = useState<Subject>(settings.subjects[0] ?? defaultSubjects[0])
   const [selectedTaskId, setSelectedTaskId] = useState('')
+  const [showCompletion, setShowCompletion] = useState(false)
+  const completedRound = useRef(false)
+  const remainingSecondsRef = useRef(25 * 60)
+  const closeCompletion = useCallback(() => setShowCompletion(false), [])
 
   const today = todayIso()
   const todayTasks = tasks.filter((task) => task.date === today)
   const subjects = subjectOptions([...settings.subjects, ...tasks.map((task) => task.subject)])
   const safeSubject = subjects.includes(subject) ? subject : subjects[0] ?? defaultSubjects[0]
 
+  const recordCompletedSession = useCallback(() => {
+    addPomodoroSession({
+      title: title.trim() || '专注学习',
+      minutes: customMinutes,
+      mode,
+      subject: mode === '专注' ? safeSubject : undefined,
+      taskId: mode === '专注' && selectedTaskId ? selectedTaskId : undefined,
+    })
+  }, [addPomodoroSession, customMinutes, mode, safeSubject, selectedTaskId, title])
+
   useEffect(() => {
     if (!isRunning) return
+    const deadline = Date.now() + remainingSecondsRef.current * 1000
     const timer = window.setInterval(() => {
-      setRemainingSeconds((seconds) => {
-        if (seconds <= 1) {
-          window.clearInterval(timer)
-          setIsRunning(false)
-          return 0
+      const seconds = Math.max(0, Math.ceil((deadline - Date.now()) / 1000))
+      remainingSecondsRef.current = seconds
+      setRemainingSeconds(seconds)
+      if (seconds === 0) {
+        window.clearInterval(timer)
+        setIsRunning(false)
+        if (!completedRound.current) {
+          completedRound.current = true
+          recordCompletedSession()
+          if (mode === '专注') setShowCompletion(true)
         }
-        return seconds - 1
-      })
-    }, 1000)
+      }
+    }, 250)
     return () => window.clearInterval(timer)
-  }, [isRunning])
+  }, [isRunning, mode, recordCompletedSession])
 
   useEffect(() => {
     const syncFullscreenState = () => {
@@ -86,10 +109,14 @@ export function Pomodoro() {
   }, [])
 
   const resetTimer = (nextMode = mode, nextMinutes = customMinutes) => {
+    completedRound.current = false
     setMode(nextMode)
     setCustomMinutes(nextMinutes)
-    setRemainingSeconds(Math.max(1, nextMinutes) * 60)
+    const nextSeconds = Math.max(1, nextMinutes) * 60
+    remainingSecondsRef.current = nextSeconds
+    setRemainingSeconds(nextSeconds)
     setIsRunning(false)
+    setHasStarted(false)
   }
 
   const changeMode = (nextMode: TimerMode) => {
@@ -98,19 +125,17 @@ export function Pomodoro() {
   }
 
   const changeMinutes = (value: number) => {
-    const nextMinutes = Math.max(1, Math.min(240, Number.isFinite(value) ? value : 25))
+    const nextMinutes = Math.max(1, Math.min(maxTimerMinutes, Number.isFinite(value) ? value : 25))
     resetTimer(mode, nextMinutes)
   }
 
-  const completeSession = () => {
-    addPomodoroSession({
-      title: title.trim() || '专注学习',
-      minutes: customMinutes,
-      mode,
-      subject: mode === '专注' ? safeSubject : undefined,
-      taskId: mode === '专注' && selectedTaskId ? selectedTaskId : undefined,
-    })
-    resetTimer(mode, customMinutes)
+  const toggleTimer = () => {
+    if (remainingSeconds === 0) return
+    if (!hasStarted) {
+      completedRound.current = false
+      setHasStarted(true)
+    }
+    setIsRunning((value) => !value)
   }
 
   const selectTask = (taskId: string) => {
@@ -154,6 +179,7 @@ export function Pomodoro() {
 
   return (
     <div ref={pageRef} className={isFocusView ? 'min-h-screen bg-slate-950' : 'space-y-5'}>
+      {showCompletion && <FocusCompletion minutes={customMinutes} title={title.trim() || '专注学习'} onClose={closeCompletion} />}
       {isFocusView ? (
         <section className="fixed inset-0 z-50 flex min-h-[100dvh] flex-col overflow-y-auto bg-slate-950 px-5 py-5 text-white sm:px-8 sm:py-7">
           <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
@@ -179,9 +205,10 @@ export function Pomodoro() {
                   key={item.mode}
                   type="button"
                   onClick={() => changeMode(item.mode)}
+                  disabled={hasStarted}
                   className={`rounded-full px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-blue-400 ${
                     mode === item.mode ? 'bg-blue-500 text-white' : 'bg-white/8 text-slate-300 hover:bg-white/12 hover:text-white'
-                  }`}
+                  } disabled:cursor-not-allowed disabled:opacity-55`}
                 >
                   {item.mode}
                 </button>
@@ -205,8 +232,9 @@ export function Pomodoro() {
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <button
                 type="button"
-                onClick={() => setIsRunning((value) => !value)}
-                className="flex h-12 min-w-32 items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 text-base font-semibold text-white transition hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                disabled={remainingSeconds === 0}
+                onClick={toggleTimer}
+                className="flex h-12 min-w-32 items-center justify-center gap-2 rounded-xl bg-blue-500 px-5 text-base font-semibold text-white transition hover:bg-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-300 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isRunning ? <Pause size={19} /> : <Play size={19} />}
                 {isRunning ? '暂停' : '开始'}
@@ -219,18 +247,10 @@ export function Pomodoro() {
                 <RotateCcw size={18} />
                 重置
               </button>
-              <button
-                type="button"
-                onClick={completeSession}
-                className="flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 text-sm font-semibold text-white transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300"
-              >
-                <Check size={18} />
-                完成并记录
-              </button>
             </div>
           </div>
 
-          <p className="text-center text-xs text-slate-500">按 Esc 退出全屏 · 专注记录仅保存在本地</p>
+          <p className="text-center text-xs text-slate-500">按 Esc 退出全屏 · 倒计时结束后自动记录到本地</p>
         </section>
       ) : (
         <>
@@ -239,26 +259,41 @@ export function Pomodoro() {
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
         <Card className="overflow-hidden p-0">
           <div className="border-b border-slate-200 px-5 py-4">
-            <SectionTitle title="专注计时" caption="完成后会写入本地专注记录，刷新页面也不会丢失。" />
+            <SectionTitle title="专注计时" caption="倒计时归零后自动写入本地记录，刷新页面也不会丢失。" />
             <div className="grid gap-3 md:grid-cols-2">
-              <TextInput value={title} onChange={(event) => setTitle(event.target.value)} placeholder="本次专注内容" />
-              <Select value={mode} onChange={(event) => changeMode(event.target.value as TimerMode)}>
+              <TextInput value={title} onChange={(event) => setTitle(event.target.value)} placeholder="本次专注内容" disabled={hasStarted} />
+              <Select value={mode} onChange={(event) => changeMode(event.target.value as TimerMode)} disabled={hasStarted}>
                 {modeOptions.map((item) => <option key={item.mode} value={item.mode}>{item.label}</option>)}
               </Select>
-              <Select value={selectedTaskId} onChange={(event) => selectTask(event.target.value)} disabled={mode !== '专注'}>
+              <Select value={selectedTaskId} onChange={(event) => selectTask(event.target.value)} disabled={mode !== '专注' || hasStarted}>
                 <option value="">不关联任务</option>
                 {todayTasks.map((task) => <option key={task.id} value={task.id}>{task.slot} · {task.title}</option>)}
               </Select>
               <div className="grid grid-cols-[minmax(0,1fr)_120px] gap-3">
-                <Select value={safeSubject} onChange={(event) => setSubject(event.target.value)} disabled={mode !== '专注'}>
+                <Select value={safeSubject} onChange={(event) => setSubject(event.target.value)} disabled={mode !== '专注' || hasStarted}>
                   {subjects.map((item) => <option key={item}>{item}</option>)}
                 </Select>
-                <TextInput type="number" min={1} max={240} value={customMinutes} onChange={(event) => changeMinutes(Number(event.target.value))} aria-label="计时分钟数" />
+                <TextInput type="number" min={1} max={maxTimerMinutes} value={customMinutes} onChange={(event) => changeMinutes(Number(event.target.value))} aria-label="计时分钟数" disabled={hasStarted} />
               </div>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="常用计时时长">
+              <span className="mr-1 text-xs text-slate-500">快捷时长</span>
+              {focusPresets.map((minutes) => (
+                <button
+                  key={minutes}
+                  type="button"
+                  disabled={hasStarted}
+                  onClick={() => changeMinutes(minutes)}
+                  className={`h-8 rounded-lg px-3 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${customMinutes === minutes ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-blue-700'}`}
+                >
+                  {minutes} 分钟
+                </button>
+              ))}
+              <span className="text-xs text-slate-400">最长 12 小时</span>
             </div>
             <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-slate-500">
               <ListTodo size={14} className="mt-0.5 shrink-0" />
-              关联今日任务后，本次专注会计入该任务的投入时长；番茄钟不会自动把任务标记为完成。
+              首次开始后会锁定本轮设置；归零时自动记录，但不会自动把关联任务标记为完成。
             </p>
           </div>
 
@@ -274,7 +309,7 @@ export function Pomodoro() {
             </div>
 
             <div className="mt-6 flex flex-wrap justify-center gap-2">
-              <Button type="button" onClick={() => setIsRunning((value) => !value)}>
+              <Button type="button" disabled={remainingSeconds === 0} onClick={toggleTimer}>
                 {isRunning ? '暂停' : '开始'}
               </Button>
               <GhostButton type="button" onClick={enterFocusView}>
@@ -285,10 +320,7 @@ export function Pomodoro() {
                 <RotateCcw size={16} />
                 重置
               </GhostButton>
-              <GhostButton type="button" onClick={completeSession}>
-                <CalendarDays size={16} />
-                完成并记录
-              </GhostButton>
+              <GhostButton type="button" onClick={() => setShowCompletion(true)}>预览完成动效</GhostButton>
             </div>
           </div>
         </Card>

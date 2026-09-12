@@ -63,6 +63,8 @@ jobs:
 
       - name: Build desktop app
         run: npm run desktop:build ${{ matrix.build-args }}
+        env:
+          VITE_DEMO_MODE: "false"
 
       - name: Upload installers
         uses: actions/upload-artifact@v4

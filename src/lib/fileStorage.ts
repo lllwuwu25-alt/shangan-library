@@ -42,10 +42,16 @@ export const getAttachmentBlob = async (file: FileAttachment) => {
     return fetch(file.dataUrl).then((response) => response.blob())
   }
   const storageKey = file.storageKey
-  if (!storageKey) throw new Error('附件文件不存在')
-  const blob = await withStore<Blob | undefined>('readonly', (store) => store.get(storageKey))
-  if (!blob) throw new Error('附件文件不存在')
-  return blob
+  if (storageKey) {
+    const blob = await withStore<Blob | undefined>('readonly', (store) => store.get(storageKey))
+    if (blob) return blob
+  }
+  if (file.sourcePath && typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+    const { readFile } = await import('@tauri-apps/plugin-fs')
+    const bytes = await readFile(file.sourcePath)
+    return new Blob([bytes], { type: file.type })
+  }
+  throw new Error('附件文件不存在')
 }
 
 export const deleteAttachmentBlob = async (file: FileAttachment) => {

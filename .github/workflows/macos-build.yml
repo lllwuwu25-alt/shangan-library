@@ -52,6 +52,8 @@ jobs:
 
       - name: Build macOS DMG
         run: npm run desktop:build -- --bundles dmg
+        env:
+          VITE_DEMO_MODE: "false"
 
       - name: Upload macOS installer
         uses: actions/upload-artifact@v4

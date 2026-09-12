@@ -14,6 +14,7 @@ export type FileAttachment = {
   size: number
   dataUrl?: string
   storageKey?: string
+  sourcePath?: string
 }
 
 export type Task = {

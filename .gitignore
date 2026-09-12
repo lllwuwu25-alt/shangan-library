@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 offline-build
+release-test
 *.local
 
 # Tauri build outputs

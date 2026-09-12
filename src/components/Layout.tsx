@@ -21,7 +21,14 @@ const mobileNavItems = [
 
 const pageTitle = (path: string) => navItems.find((item) => item.path === path)?.label ?? '首页总览'
 
-export function Layout({ path, onNavigate, children }: { path: string; onNavigate: (path: string) => void; children: ReactNode }) {
+type NavigationOrigin = { x: number; y: number }
+
+const originFromButton = (button: HTMLButtonElement) => {
+  const rect = button.getBoundingClientRect()
+  return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+}
+
+export function Layout({ path, onNavigate, children }: { path: string; onNavigate: (path: string, origin?: NavigationOrigin) => void; children: ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-slate-200 bg-white/95 px-4 py-5 shadow-soft lg:flex lg:flex-col">
@@ -42,7 +49,7 @@ export function Layout({ path, onNavigate, children }: { path: string; onNavigat
               <button
                 key={item.path}
                 type="button"
-                onClick={() => onNavigate(item.path)}
+                onClick={(event) => onNavigate(item.path, originFromButton(event.currentTarget))}
                 className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-blue-200 ${active ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'}`}
               >
                 <Icon size={18} />
@@ -71,7 +78,7 @@ export function Layout({ path, onNavigate, children }: { path: string; onNavigat
             </div>
             <button
               type="button"
-              onClick={() => onNavigate('/settings')}
+              onClick={(event) => onNavigate('/settings', originFromButton(event.currentTarget))}
               aria-label="打开设置"
               className={`flex size-10 items-center justify-center rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-200 ${path === '/settings' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
             >
@@ -89,7 +96,7 @@ export function Layout({ path, onNavigate, children }: { path: string; onNavigat
                 <button
                   key={item.path}
                   type="button"
-                  onClick={() => onNavigate(item.path)}
+                  onClick={(event) => onNavigate(item.path, originFromButton(event.currentTarget))}
                   aria-current={active ? 'page' : undefined}
                   className={`flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[11px] font-medium transition focus:outline-none focus:ring-2 focus:ring-blue-200 ${active ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'}`}
                 >

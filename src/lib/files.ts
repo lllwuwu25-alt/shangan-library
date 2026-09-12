@@ -57,10 +57,14 @@ export const attachmentToDataUrl = async (file: FileAttachment) => {
   return blobToDataUrl(await getAttachmentBlob(file))
 }
 
-const embedAttachment = async (file: FileAttachment): Promise<FileAttachment> => ({
-  ...file,
-  dataUrl: await attachmentToDataUrl(file),
-})
+const embedAttachment = async (file: FileAttachment): Promise<FileAttachment> => {
+  const portableFile = { ...file }
+  delete portableFile.sourcePath
+  return {
+    ...portableFile,
+    dataUrl: await attachmentToDataUrl(file),
+  }
+}
 
 export const embedAttachmentsForBackup = async (data: AppData): Promise<AppData> => ({
   ...data,

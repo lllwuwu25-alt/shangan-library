@@ -1,5 +1,6 @@
-import { Download, Eye, FileText, Paperclip, X } from 'lucide-react'
+import { Download, Eye, FileText, Library, Paperclip, X } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { isDesktopRuntime, revealAttachmentInFolder } from '../lib/desktopFiles'
 import { downloadAttachmentFile, formatFileSize, isDocxFile, isExcelFile, isPreviewableFile } from '../lib/files'
 import { deleteAttachmentBlob } from '../lib/fileStorage'
 import type { FileAttachment } from '../types'
@@ -18,11 +19,12 @@ export function AttachmentList({ attachments, onRemove, onOpen, compact = false 
     <div className={compact ? 'mt-3 grid gap-2 sm:grid-cols-2' : 'mt-3 grid gap-2'}>
       {attachments.map((file) => {
         const previewable = isPreviewableFile(file) || isDocxFile(file) || isExcelFile(file)
+        const canReveal = Boolean(file.sourcePath && isDesktopRuntime())
 
         return (
           <div
             key={file.id}
-            className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-2 rounded-2xl bg-white px-3 py-2 text-xs text-slate-600 ring-1 ring-slate-200"
+            className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] items-center gap-2 rounded-2xl bg-white px-3 py-2 text-xs text-slate-600 ring-1 ring-slate-200"
           >
             <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-500">
               {previewable ? <Eye size={14} /> : <FileText size={14} />}
@@ -35,7 +37,7 @@ export function AttachmentList({ attachments, onRemove, onOpen, compact = false 
               title={previewable ? '预览文件' : '打开文件'}
             >
               <span className="block truncate font-medium text-slate-800 hover:text-blue-700">{file.name}</span>
-              <span className="mt-0.5 block truncate text-slate-400">{formatFileSize(file.size)}</span>
+              <span className="mt-0.5 block truncate text-slate-400">{formatFileSize(file.size)}{canReveal ? ' · 已关联本地位置' : ''}</span>
             </button>
             <button
               type="button"
@@ -45,6 +47,17 @@ export function AttachmentList({ attachments, onRemove, onOpen, compact = false 
             >
               <Download size={14} />
             </button>
+            {canReveal && (
+              <button
+                type="button"
+                onClick={() => void revealAttachmentInFolder(file).catch(() => window.alert('无法定位原文件，它可能已被移动、重命名或删除。'))}
+                className="flex size-8 shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-blue-50 hover:text-blue-700"
+                title={`在文件夹中显示：${file.sourcePath}`}
+                aria-label={`在文件夹中显示 ${file.name}`}
+              >
+                <Library size={14} />
+              </button>
+            )}
             {onRemove && (
               <button
                 type="button"

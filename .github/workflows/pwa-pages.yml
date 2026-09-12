@@ -37,8 +37,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Build PWA for GitHub Pages
-        run: npm run build
+      - name: Build PWA demo for GitHub Pages
+        run: npm run build:web-demo
         env:
           VITE_BASE_PATH: /shangan-library/
 

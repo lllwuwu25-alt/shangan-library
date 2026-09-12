@@ -1,5 +1,7 @@
 import { ArrowRight, CheckCircle2, Clock, Database, Flame, HardDrive, TimerReset } from 'lucide-react'
+import { useEffect } from 'react'
 import { defaultSubjects, subjectOptions } from '../constants'
+import { useKnowledgeStore } from '../features/knowledge-tree/store/knowledgeStore'
 import { currentDayName, daysUntil, isoForCurrentWeekDay, localIsoFromDateTime, todayIso, weekRange } from '../lib/date'
 import { useStudyStore } from '../store/useStudyStore'
 import { Card, EmptyState, GhostButton, Panel, Pill, SectionTitle, StatCard } from '../components/ui'
@@ -8,6 +10,10 @@ import type { PomodoroSession, Task } from '../types'
 
 export function Dashboard({ go }: { go: (path: string) => void }) {
   const { tasks, resources, pomodoroSessions, settings, toggleTask } = useStudyStore()
+  const knowledge = useKnowledgeStore()
+  const initializeKnowledge = knowledge.initialize
+  useEffect(() => { void initializeKnowledge(resources) }, [initializeKnowledge, resources])
+  const resourceCount = knowledge.initialized ? knowledge.nodes.filter((node) => !node.archived && ['document', 'note', 'image', 'video', 'link', 'mistake'].includes(node.type)).length : resources.length
   const todayDay = currentDayName()
   const todayDate = todayIso()
   const currentWeek = weekRange(0)
@@ -73,7 +79,7 @@ export function Dashboard({ go }: { go: (path: string) => void }) {
           tone="slate"
         />
         <StatCard icon={<CheckCircle2 size={18} />} label="本周完成率" value={`${completion}%`} detail="按本周计划任务计算" tone="green" />
-        <StatCard icon={<Database size={18} />} label="累计资料数" value={`${resources.length} 份`} detail="含文件附件索引" tone="amber" />
+        <StatCard icon={<Database size={18} />} label="累计资料数" value={`${resourceCount} 份`} detail="按知识树中的资料与笔记统计" tone="amber" />
       </div>
       <div className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
         <Card>
