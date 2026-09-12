@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.6.0"
+version = "0.6.1"
 description = "上岸资料库：本地个人学习系统"
 authors = ["Shangan Library"]
 license = "Proprietary"
