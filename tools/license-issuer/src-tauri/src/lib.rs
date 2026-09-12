@@ -15,6 +15,7 @@ use tauri::Manager;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let issuer_directory = app.path().app_config_dir()?.join("license-issuer-data");
             app.manage(IssuerRuntime::new(IssuerService::new(issuer_directory)));

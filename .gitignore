@@ -13,6 +13,7 @@ dist-ssr
 offline-build
 release-test
 *.local
+*.tsbuildinfo
 
 # Tauri build outputs
 src-tauri/target

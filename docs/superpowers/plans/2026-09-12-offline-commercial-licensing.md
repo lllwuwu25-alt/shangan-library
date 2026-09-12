@@ -336,23 +336,23 @@ git commit -m "feat: add isolated license issuer backend"
 - Consumes the Task 5 commands and displays no private-key bytes except during an explicit developer-selected export operation.
 - Produces an initialization/recovery screen, issuance form, generated-license result, searchable history, and key-management section.
 
-- [ ] **Step 1: Scaffold the isolated Vite/React frontend**
+- [x] **Step 1: Scaffold the isolated Vite/React frontend**
 
 Configure issuer scripts `dev`, `build`, `tauri`, `desktop:dev`, and `desktop:build`; use its own package lock and Tauri identifier `com.shangan.library.license-issuer`. Do not reference issuer scripts from customer `desktop:build`.
 
-- [ ] **Step 2: Implement the key-missing startup flow**
+- [x] **Step 2: Implement the key-missing startup flow**
 
 Show only “恢复已有私钥” and a guarded “初始化新的授权体系”. Initialization requires the developer to retype `创建新的授权体系` and then shows the documented loss/leak warnings plus immediate backup guidance.
 
-- [ ] **Step 3: Implement issuance and result UI**
+- [x] **Step 3: Implement issuance and result UI**
 
 Provide fixed “永久 Pro”, order note, sales channel choices 微信/小红书/其他, and Generate. The result shows License ID, full wrapping SL1 license string, one-click copy, and generation time with success/error feedback.
 
-- [ ] **Step 4: Implement history and key management**
+- [x] **Step 4: Implement history and key management**
 
 Add search, copy original license, public-key export, private-key backup, and private-key restore. Destructive key restore requires explicit confirmation and a post-restore public-key comparison result.
 
-- [ ] **Step 5: Build and lint the issuer**
+- [x] **Step 5: Build and lint the issuer**
 
 Run: `npm ci --prefix tools/license-issuer`
 
@@ -364,7 +364,7 @@ Run: `cargo test --manifest-path tools/license-issuer/src-tauri/Cargo.toml`
 
 Expected: issuer backend tests remain PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add tools/license-issuer
