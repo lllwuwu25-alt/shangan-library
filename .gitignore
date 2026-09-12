@@ -32,3 +32,14 @@ crates/*/Cargo.lock
 
 # Local isolated development worktrees
 .worktrees/
+
+# License issuer secrets and local operational data
+*.private.key
+private.key
+license-private.key
+license-secrets/
+license-issuer-data/
+license-exports/
+tools/license-issuer/.local-data/
+tools/license-issuer/src-tauri/issuer-data/
+tools/license-issuer/src-tauri/gen/

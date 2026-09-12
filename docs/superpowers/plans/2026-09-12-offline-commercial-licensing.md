@@ -277,33 +277,33 @@ git commit -m "feat: gate desktop app behind offline activation"
 - Produces commands: `get_issuer_state`, `initialize_key_system`, `issue_license`, `search_records`, `export_public_key`, `export_private_key_backup`, `restore_private_key_backup`.
 - `issue_license` always emits schema 1, key `primary-2026`, product `com.shangan.library`, edition `pro`, type `lifetime`, feature `full_access`, UUIDv7 license ID, current Unix timestamp, and no expiry.
 
-- [ ] **Step 1: Add secret exclusions before key code**
+- [x] **Step 1: Add secret exclusions before key code**
 
 Ignore `*.private.key`, `private.key`, `license-private.key`, `license-secrets/`, `license-issuer-data/`, `license-exports/`, and issuer-local generated outputs. Confirm no ignored path overlaps source or public-key fixtures.
 
-- [ ] **Step 2: Write failing issuer-domain tests**
+- [x] **Step 2: Write failing issuer-domain tests**
 
 Generate keys only in temporary test directories. Assert two issued licenses have unique UUIDv7 IDs and both verify through the client-compatible public verifier; tampering fails; deleting a record does not affect verification; restarting with the same key still signs compatible licenses; a missing key returns `KEY_MISSING` and never regenerates silently; restoring a backup reproduces the same public key.
 
-- [ ] **Step 3: Run issuer tests and confirm failure**
+- [x] **Step 3: Run issuer tests and confirm failure**
 
 Run: `cargo test --manifest-path tools/license-issuer/src-tauri/Cargo.toml`
 
 Expected: FAIL because issuer modules are absent.
 
-- [ ] **Step 4: Implement private-key storage and permissions**
+- [x] **Step 4: Implement private-key storage and permissions**
 
 Store the private key beneath the issuer app config directory, never beneath the repository. Use atomic writes and set Unix file mode `0600`. Store the key ID and public key alongside metadata needed to detect mismatched restores. A missing key must remain missing until the explicit initialize or restore command runs.
 
-- [ ] **Step 5: Implement issuance and local records**
+- [x] **Step 5: Implement issuance and local records**
 
 Sign exact shared-protocol payload bytes with Ed25519. Save records atomically in a versioned JSON document and support case-insensitive search by License ID, customer reference, and channel. Validate customer references and channels as short non-sensitive text and never log the raw license.
 
-- [ ] **Step 6: Implement safe key import/export commands**
+- [x] **Step 6: Implement safe key import/export commands**
 
 Private-key backup export requires an explicit confirmation token from the UI and writes only to a developer-chosen path. Restore validates the key length and derived public key before replacement. Public export contains key ID, algorithm, and Base64URL public key only.
 
-- [ ] **Step 7: Run issuer tests and secret scan**
+- [x] **Step 7: Run issuer tests and secret scan**
 
 Run: `cargo test --manifest-path tools/license-issuer/src-tauri/Cargo.toml`
 
@@ -313,7 +313,7 @@ Run: `git ls-files | rg "private\.key|license-secrets|license-issuer-data|licens
 
 Expected: no secret or issuer-data file is tracked.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add .gitignore tools/license-issuer/package.json tools/license-issuer/package-lock.json tools/license-issuer/src-tauri
