@@ -1,4 +1,4 @@
-import{n as e,t}from"./index-BIzH_QWh.js";var n=(e,t)=>`data:${e};charset=utf-8,${encodeURIComponent(t)}`;function r(){let e=[`<< /Type /Catalog /Pages 2 0 R >>`,`<< /Type /Pages /Kids [3 0 R] /Count 1 >>`,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>`,`<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>`,`<< /Length 174 >>
+import{n as e,t}from"./index-7-guLNQY.js";var n=(e,t)=>`data:${e};charset=utf-8,${encodeURIComponent(t)}`;function r(){let e=[`<< /Type /Catalog /Pages 2 0 R >>`,`<< /Type /Pages /Kids [3 0 R] /Count 1 >>`,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>`,`<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>`,`<< /Length 174 >>
 stream
 BT /F1 20 Tf 72 760 Td (Shangan Library Demo) Tj 0 -34 Td /F1 13 Tf (Calculus limits and continuity review) Tj 0 -24 Td (Use this virtual file to test the PDF preview.) Tj ET
 endstream`],t=`%PDF-1.4
