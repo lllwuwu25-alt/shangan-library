@@ -29,7 +29,7 @@ impl PublicKeyRegistry {
 }
 
 // LICENSE_PUBLIC_KEYS_START
-pub const ACTIVE_PUBLIC_KEYS: &[(&str, [u8; 32])] = &[];
+pub const ACTIVE_PUBLIC_KEYS: &[(&str, [u8; 32])] = &[("primary-2026", [40, 132, 46, 90, 142, 252, 86, 229, 66, 243, 76, 225, 39, 253, 2, 175, 26, 49, 153, 42, 85, 117, 115, 147, 240, 15, 206, 134, 244, 120, 152, 94])];
 // LICENSE_PUBLIC_KEYS_END
 
 pub fn active_public_keys() -> Result<PublicKeyRegistry, LicenseError> {

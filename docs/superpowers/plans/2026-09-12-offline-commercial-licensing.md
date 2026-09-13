@@ -432,35 +432,35 @@ git commit -m "chore: secure commercial license release flow"
 - Consumes the locally exported official public key only; no command reads or copies the official private key into the repository.
 - Produces a release-ready customer source tree and local developer issuer installation.
 
-- [ ] **Step 1: Run all pre-key verification**
+- [x] **Step 1: Run all pre-key verification**
 
 Run: `npm test`, `npm run lint`, `npm run build`, `npm run build:web-demo`, `cargo test --manifest-path crates/license-protocol/Cargo.toml`, `cargo test --manifest-path src-tauri/Cargo.toml`, `npm run build --prefix tools/license-issuer`, and `cargo test --manifest-path tools/license-issuer/src-tauri/Cargo.toml`.
 
 Expected: all commands PASS; release guard alone reports that the official public key is not yet synchronized.
 
-- [ ] **Step 2: Build and open the local issuer for explicit initialization**
+- [x] **Step 2: Build and open the local issuer for explicit initialization**
 
 Run the issuer locally and require the developer to click the guarded initialization control. Immediately export an offline private-key backup and a public-key document. Do not automate or simulate this confirmation.
 
-- [ ] **Step 3: Sync only the official public key**
+- [x] **Step 3: Sync only the official public key**
 
 Run: `npm run license:sync-public-key -- --input <developer-selected-public-key-export>`
 
 Expected: only `src-tauri/src/license/keys.rs` changes, and `git status` shows no private key, issuer record, or export directory.
 
-- [ ] **Step 4: Generate and verify the first official license**
+- [x] **Step 4: Generate and verify the first official license**
 
 Use the issuer UI to create one non-customer acceptance license with a non-sensitive test order reference. Activate a local customer desktop build, restart it, confirm it remains valid, remove authorization, and confirm all pre-existing learning data remains intact.
 
-- [ ] **Step 5: Run final security audit**
+- [x] **Step 5: Run final security audit**
 
 Search tracked client source and built customer artifacts for `private_key`, `SigningKey`, `sign_license`, `generate_license`, `generate_keypair`, `isLicensed`, `isPro`, `bypass`, `secret`, raw SL1 test strings, and private-key filenames. Review every match and record evidence without copying sensitive bytes into the report.
 
-- [ ] **Step 6: Run final build matrix available locally**
+- [x] **Step 6: Run final build matrix available locally**
 
 Run all checks from Step 1, `npm run license:check-release`, and `npm run desktop:build -- --bundles dmg` on macOS. Confirm the app name, version `0.7.0`, identifier, both existing file-management plugins, user-data continuity, activation gate, and DMG creation. Windows x64 is validated through the GitHub Actions matrix after push.
 
-- [ ] **Step 7: Write reports**
+- [x] **Step 7: Write reports**
 
 `docs/LICENSE_TEST_REPORT.md` records each command, result, platform, integration scenario, and remaining limitation. `docs/LICENSE_IMPLEMENTATION_REPORT.md` records detected stack/storage, changed files, verification flow, non-secret storage locations, issuer startup, first-license procedure, backup procedure, customer activation, build results, and known limitations.
 
