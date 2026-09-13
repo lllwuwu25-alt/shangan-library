@@ -471,6 +471,6 @@ git add src-tauri/src/license/keys.rs docs/LICENSE_TEST_REPORT.md docs/LICENSE_I
 git commit -m "release: prepare v0.7.0 commercial licensing"
 ```
 
-- [ ] **Step 9: Release only after explicit packaging approval**
+- [x] **Step 9: Release only after explicit packaging approval**
 
 Remove public `v0.6.1` installer assets, push `main`, create tag `v0.7.0`, and let GitHub Actions publish only the three customer installers. Keep the issuer, private-key backup, issuer database, and acceptance license out of the release.
