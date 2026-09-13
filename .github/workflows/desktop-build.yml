@@ -94,6 +94,27 @@ jobs:
         with:
           path: release-assets
 
+      - name: Remove ungated v0.6.1 installer assets
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo
+            const { data: release } = await github.rest.repos.getReleaseByTag({
+              owner,
+              repo,
+              tag: 'v0.6.1',
+            })
+            const installerPattern = /\.(?:dmg|exe|msi)$/i
+            const installerAssets = release.assets.filter((asset) => installerPattern.test(asset.name))
+            for (const asset of installerAssets) {
+              await github.rest.repos.deleteReleaseAsset({
+                owner,
+                repo,
+                asset_id: asset.id,
+              })
+              core.info(`Removed v0.6.1 installer asset: ${asset.name}`)
+            }
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
