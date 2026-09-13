@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url)
 const ROOT = resolve(dirname(SCRIPT_PATH), '..')
-const EXPECTED_VERSION = '0.7.0'
+const EXPECTED_VERSION = '0.7.1'
 const FORBIDDEN_CLIENT_PATTERNS = [
   /\bSigningKey\b/,
   /\bed25519_dalek::Signer\b/,

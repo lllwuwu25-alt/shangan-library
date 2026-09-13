@@ -8,7 +8,10 @@
   "permissions": [
     "core:default",
     "dialog:allow-open",
+    "dialog:allow-save",
     "fs:allow-read-file",
+    "fs:allow-read-text-file",
+    "fs:allow-write-text-file",
     "fs:allow-stat",
     "opener:allow-reveal-item-in-dir"
   ]

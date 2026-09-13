@@ -23,7 +23,7 @@ test('rejects client signing capability and tracked secret outputs', () => {
 })
 
 test('rejects version drift and issuer paths in customer artifacts', () => {
-  const root = releaseFixture({ packageVersion: '0.7.1', artifactPath: 'tools/license-issuer/src-tauri/target/release/*' })
+  const root = releaseFixture({ packageVersion: '0.7.0', artifactPath: 'tools/license-issuer/src-tauri/target/release/*' })
   const issues = checkRelease({ root, trackedFiles: [] }).join('\n')
   assert.match(issues, /package.json/)
   assert.match(issues, /issuer path/i)
@@ -34,9 +34,9 @@ function releaseFixture(options = {}) {
   mkdirSync(join(root, 'src-tauri/src/license'), { recursive: true })
   mkdirSync(join(root, 'src-tauri/src'), { recursive: true })
   mkdirSync(join(root, '.github/workflows'), { recursive: true })
-  writeFileSync(join(root, 'package.json'), JSON.stringify({ version: options.packageVersion ?? '0.7.0' }))
-  writeFileSync(join(root, 'src-tauri/tauri.conf.json'), JSON.stringify({ version: '0.7.0' }))
-  writeFileSync(join(root, 'src-tauri/Cargo.toml'), '[package]\nname = "app"\nversion = "0.7.0"\n')
+  writeFileSync(join(root, 'package.json'), JSON.stringify({ version: options.packageVersion ?? '0.7.1' }))
+  writeFileSync(join(root, 'src-tauri/tauri.conf.json'), JSON.stringify({ version: '0.7.1' }))
+  writeFileSync(join(root, 'src-tauri/Cargo.toml'), '[package]\nname = "app"\nversion = "0.7.1"\n')
   writeFileSync(
     join(root, 'src-tauri/src/license/keys.rs'),
     options.keys ?? 'pub const ACTIVE_PUBLIC_KEYS: &[(&str, [u8; 32])] = &[("primary-2026", [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])];',

@@ -4,18 +4,19 @@ import { useEffect, useRef, useState } from 'react'
 import { PageHeader } from '../components/Layout'
 import { Button, Card, DangerButton, GhostButton, Panel, SectionTitle, Select, TextInput } from '../components/ui'
 import { defaultResourceCategories, defaultSubjects, subjectOptions } from '../constants'
-import { embedAttachmentsForBackup, restoreAttachmentsFromBackup } from '../lib/files'
-import { clearAttachmentBlobs } from '../lib/fileStorage'
+import { embedAttachmentsForBackup, prepareAttachmentsFromBackup } from '../lib/files'
+import { clearAttachmentBlobs, getAllAttachmentBlobs, replaceAttachmentBlobs } from '../lib/fileStorage'
 import { normalizeAppData, STORAGE_KEY } from '../lib/storage'
-import { createKnowledgeBackup, isKnowledgeBackup, restoreKnowledgeBackup, type KnowledgeBackupBundle } from '../features/knowledge-tree/services/backup'
+import { createKnowledgeBackup, prepareKnowledgeBackupRestore } from '../features/knowledge-tree/services/backup'
 import { migrateLegacyResources } from '../features/knowledge-tree/services/migration'
 import { knowledgeSnapshot, useKnowledgeStore } from '../features/knowledge-tree/store/knowledgeStore'
 import type { ResourceFile } from '../features/knowledge-tree/types/knowledge'
 import { useStudyStore } from '../store/useStudyStore'
 import type { AppData, Subject, ThemeMode } from '../types'
 import { LicenseStatusPanel } from '../features/license/LicenseStatusPanel'
-
-type CompleteBackup = AppData & { knowledge?: KnowledgeBackupBundle }
+import { createBackupDocument, parseBackupDocument } from '../lib/backup'
+import { pickDesktopBackupText, saveBackupText } from '../lib/backupFile'
+import { isDesktopRuntime } from '../lib/desktopFiles'
 
 export function Settings() {
   const store = useStudyStore()
@@ -84,48 +85,78 @@ export function Settings() {
       })
       await useKnowledgeStore.getState().initialize(store.resources)
       const knowledgeBackup = await createKnowledgeBackup(knowledgeSnapshot())
-      const completeBackup: CompleteBackup = { ...backupData, knowledge: knowledgeBackup }
-      const blob = new Blob([JSON.stringify(completeBackup)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
+      const completeBackup = createBackupDocument(backupData, knowledgeBackup, backedUpAt)
       const time = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`
-      link.href = url
-      link.download = `上岸资料库-完整备份-${now.toISOString().slice(0, 10)}-${time}.json`
-      link.click()
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+      const fileName = `上岸资料库-完整备份-${now.toISOString().slice(0, 10)}-${time}.json`
+      const saved = await saveBackupText(JSON.stringify(completeBackup), fileName)
+      if (!saved) {
+        setMessage('已取消备份，原有数据没有变化。')
+        return
+      }
       store.updateSettings({ lastBackupAt: backedUpAt })
       setMessage(`完整备份已生成，包含知识树和 ${knowledgeBackup.data.files.length} 个资料文件。`)
-    } catch {
-      setMessage('备份失败：有附件正文无法读取。请确认附件仍可预览后再试。')
+    } catch (error) {
+      setMessage(`备份失败：${getErrorMessage(error, '请确认附件仍可预览后再试。')}`)
     } finally {
       setIsProcessingBackup(false)
     }
   }
 
-  const importBackup = async (file?: File) => {
-    if (!file) return
+  const restoreBackup = async (readText: () => Promise<string | null>) => {
     setIsProcessingBackup(true)
-    setMessage('正在读取备份并恢复附件，请稍候…')
+    setMessage('正在校验备份内容，请稍候…')
+    let previousData: AppData | null = null
+    let previousKnowledge = null as ReturnType<typeof knowledgeSnapshot> | null
+    let previousBlobs: Map<string, Blob> | null = null
+    let commitStarted = false
     try {
-      const text = await file.text()
-      const imported = JSON.parse(text) as Partial<CompleteBackup>
-      if (!Array.isArray(imported.tasks) || !Array.isArray(imported.resources) || !Array.isArray(imported.mistakes) || !imported.settings) {
-        throw new Error('数据结构不完整')
+      const text = await readText()
+      if (text === null) {
+        setMessage('已取消恢复，原有数据没有变化。')
+        return
       }
-      const restored = await restoreAttachmentsFromBackup(normalizeAppData(imported))
-      store.importData(restored)
-      if (isKnowledgeBackup(imported.knowledge)) {
-        await knowledge.replaceData(await restoreKnowledgeBackup(imported.knowledge))
-      } else {
-        await knowledge.replaceData(migrateLegacyResources(restored.resources).data)
+      const parsed = parseBackupDocument(text)
+      const preparedApp = await prepareAttachmentsFromBackup(normalizeAppData(parsed.appData))
+      const preparedKnowledge = parsed.knowledge
+        ? await prepareKnowledgeBackupRestore(parsed.knowledge)
+        : { data: migrateLegacyResources(preparedApp.data.resources).data, blobs: new Map<string, Blob>() }
+      const nextBlobs = new Map([...preparedApp.blobs, ...preparedKnowledge.blobs])
+
+      await useKnowledgeStore.getState().initialize(store.resources)
+      previousData = normalizeAppData(data)
+      previousKnowledge = knowledgeSnapshot()
+      previousBlobs = await getAllAttachmentBlobs()
+      commitStarted = true
+
+      await replaceAttachmentBlobs(nextBlobs)
+      await knowledge.replaceData(preparedKnowledge.data)
+      store.importData(preparedApp.data)
+      setMessage(`恢复成功，学习数据、知识树和 ${nextBlobs.size} 个附件已完整写入本地。`)
+    } catch (error) {
+      if (commitStarted && previousData && previousKnowledge && previousBlobs) {
+        const rollback = await Promise.allSettled([
+          replaceAttachmentBlobs(previousBlobs),
+          knowledge.replaceData(previousKnowledge),
+          Promise.resolve().then(() => store.importData(previousData!)),
+        ])
+        if (rollback.some((result) => result.status === 'rejected')) {
+          setMessage(`恢复失败且原数据回滚不完整：${getErrorMessage(error, '请保留当前数据并联系支持。')}`)
+          return
+        }
       }
-      setMessage(`恢复成功，学习数据、知识树和 ${getAttachmentCount(restored)} 个旧版附件已写入本地。`)
-    } catch {
-      setMessage('恢复失败，请选择上岸资料库生成的完整备份文件。')
+      setMessage(`恢复失败：${getErrorMessage(error, '请选择上岸资料库生成的完整备份文件。')} 原有数据未改变。`)
     } finally {
       setIsProcessingBackup(false)
       if (fileRef.current) fileRef.current.value = ''
     }
+  }
+
+  const selectBackup = () => {
+    if (isDesktopRuntime()) {
+      void restoreBackup(pickDesktopBackupText)
+      return
+    }
+    fileRef.current?.click()
   }
 
   const resetAllData = async () => {
@@ -165,8 +196,11 @@ export function Settings() {
               </div>
               <div className="grid gap-3">
                 <Button className="w-full" onClick={() => void exportBackup()} disabled={isProcessingBackup}><Download size={16} />{isProcessingBackup ? '正在处理…' : '立即备份'}</Button>
-                <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => importBackup(event.target.files?.[0])} />
-                <GhostButton className="w-full" onClick={() => fileRef.current?.click()} disabled={isProcessingBackup}><Upload size={16} />恢复备份</GhostButton>
+                <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  if (file) void restoreBackup(() => file.text())
+                }} />
+                <GhostButton className="w-full" onClick={selectBackup} disabled={isProcessingBackup}><Upload size={16} />恢复备份</GhostButton>
                 <Panel>
                   <p className="text-xs text-slate-500">上次备份时间</p>
                   <p className="mt-1 text-sm font-medium text-slate-900">{lastBackupText}</p>
@@ -351,14 +385,14 @@ function getAttachments(data: AppData) {
   ]
 }
 
-function getAttachmentCount(data: AppData) {
-  return new Set(getAttachments(data).map((file) => file.storageKey || file.id)).size
-}
-
 function getAttachmentBytes(data: AppData, knowledgeFiles: ResourceFile[] = []) {
   const uniqueFiles = new Map<string, { size: number }>(getAttachments(data).map((file) => [file.storageKey || file.id, file]))
   knowledgeFiles.forEach((file) => uniqueFiles.set(file.storageKey || file.id, file))
   return Array.from(uniqueFiles.values()).reduce((sum, file) => sum + file.size, 0)
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error && error.message ? error.message : fallback
 }
 
 function formatBytes(bytes: number) {

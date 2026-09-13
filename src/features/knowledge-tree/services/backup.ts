@@ -24,17 +24,24 @@ export async function createKnowledgeBackup(data: KnowledgeData): Promise<Knowle
 }
 
 export async function restoreKnowledgeBackup(bundle: KnowledgeBackupBundle): Promise<KnowledgeData> {
+  const prepared = await prepareKnowledgeBackupRestore(bundle)
+  for (const [storageKey, blob] of prepared.blobs) await saveAttachmentBlob(storageKey, blob)
+  return prepared.data
+}
+
+export async function prepareKnowledgeBackupRestore(bundle: KnowledgeBackupBundle) {
+  const blobs = new Map<string, Blob>()
   const files = await Promise.all(bundle.data.files.map(async (file) => {
     const body = bundle.fileBodies[file.id]
-    if (!body) return file
+    if (!body) throw new Error(`资料文件「${file.name}」正文缺失`)
     const storageKey = file.storageKey || file.id
     const blob = await fetch(body).then((response) => response.blob())
-    await saveAttachmentBlob(storageKey, blob)
+    blobs.set(storageKey, blob)
     const restored = { ...file, storageKey }
     delete restored.localPath
     return restored
   }))
-  return { ...bundle.data, files }
+  return { data: { ...bundle.data, files }, blobs }
 }
 
 export function isKnowledgeBackup(value: unknown): value is KnowledgeBackupBundle {

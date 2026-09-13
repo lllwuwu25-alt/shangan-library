@@ -79,13 +79,46 @@ export const embedAttachmentsForBackup = async (data: AppData): Promise<AppData>
 })
 
 const restoreAttachment = async (file: FileAttachment): Promise<FileAttachment> => {
-  if (!file.dataUrl) return file
+  const prepared = await prepareAttachmentFromBackup(file)
+  await saveAttachmentBlob(prepared.storageKey, prepared.blob)
+  return prepared.file
+}
+
+export type PreparedAttachment = {
+  file: FileAttachment
+  storageKey: string
+  blob: Blob
+}
+
+export const prepareAttachmentFromBackup = async (file: FileAttachment): Promise<PreparedAttachment> => {
+  if (!file.dataUrl) throw new Error(`附件「${file.name}」正文缺失`)
   const storageKey = file.storageKey || file.id
   const blob = await fetch(file.dataUrl).then((response) => response.blob())
-  await saveAttachmentBlob(storageKey, blob)
   const restored = { ...file, storageKey }
   delete restored.dataUrl
-  return restored
+  delete restored.sourcePath
+  return { file: restored, storageKey, blob }
+}
+
+export const prepareAttachmentsFromBackup = async (data: AppData) => {
+  const blobs = new Map<string, Blob>()
+  const prepare = async (file: FileAttachment) => {
+    const result = await prepareAttachmentFromBackup(file)
+    blobs.set(result.storageKey, result.blob)
+    return result.file
+  }
+  const restored: AppData = {
+    ...data,
+    resources: await Promise.all(data.resources.map(async (resource) => ({
+      ...resource,
+      attachments: await Promise.all(resource.attachments.map(prepare)),
+    }))),
+    mistakes: await Promise.all(data.mistakes.map(async (mistake) => ({
+      ...mistake,
+      attachments: await Promise.all(mistake.attachments.map(prepare)),
+    }))),
+  }
+  return { data: restored, blobs }
 }
 
 export const restoreAttachmentsFromBackup = async (data: AppData): Promise<AppData> => ({

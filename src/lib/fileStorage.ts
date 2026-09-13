@@ -64,6 +64,40 @@ export const clearAttachmentBlobs = async () => {
   await withStore('readwrite', (store) => store.clear())
 }
 
+export const getAllAttachmentBlobs = async () => {
+  const db = await openDb()
+  return new Promise<Map<string, Blob>>((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readonly')
+    const store = transaction.objectStore(STORE_NAME)
+    const keysRequest = store.getAllKeys()
+    const valuesRequest = store.getAll()
+    transaction.oncomplete = () => {
+      db.close()
+      const blobs = new Map<string, Blob>()
+      keysRequest.result.forEach((key, index) => {
+        const value = valuesRequest.result[index]
+        if (value instanceof Blob) blobs.set(String(key), value)
+      })
+      resolve(blobs)
+    }
+    transaction.onerror = () => { db.close(); reject(transaction.error ?? new Error('读取附件存储失败')) }
+    transaction.onabort = () => { db.close(); reject(transaction.error ?? new Error('读取附件存储已中止')) }
+  })
+}
+
+export const replaceAttachmentBlobs = async (blobs: ReadonlyMap<string, Blob>) => {
+  const db = await openDb()
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(STORE_NAME, 'readwrite')
+    const store = transaction.objectStore(STORE_NAME)
+    store.clear()
+    for (const [key, blob] of blobs) store.put(blob, key)
+    transaction.oncomplete = () => { db.close(); resolve() }
+    transaction.onerror = () => { db.close(); reject(transaction.error ?? new Error('写入附件存储失败')) }
+    transaction.onabort = () => { db.close(); reject(transaction.error ?? new Error('写入附件存储已中止')) }
+  })
+}
+
 export const attachmentToObjectUrl = async (file: FileAttachment) => {
   const blob = await getAttachmentBlob(file)
   return URL.createObjectURL(blob)
