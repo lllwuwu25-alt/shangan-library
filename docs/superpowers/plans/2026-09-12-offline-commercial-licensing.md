@@ -464,7 +464,7 @@ Run all checks from Step 1, `npm run license:check-release`, and `npm run deskto
 
 `docs/LICENSE_TEST_REPORT.md` records each command, result, platform, integration scenario, and remaining limitation. `docs/LICENSE_IMPLEMENTATION_REPORT.md` records detected stack/storage, changed files, verification flow, non-secret storage locations, issuer startup, first-license procedure, backup procedure, customer activation, build results, and known limitations.
 
-- [ ] **Step 8: Commit the public key and reports**
+- [x] **Step 8: Commit the public key and reports**
 
 ```bash
 git add src-tauri/src/license/keys.rs docs/LICENSE_TEST_REPORT.md docs/LICENSE_IMPLEMENTATION_REPORT.md
