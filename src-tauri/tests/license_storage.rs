@@ -65,6 +65,11 @@ fn persists_reverifies_and_removes_only_the_license_file() {
         LicenseStateKind::Valid
     );
 
+    let saved = store.read_raw().unwrap();
+    assert!(restarted.activate("incorrect replacement", NOW).is_err());
+    assert_eq!(store.read_raw().unwrap(), saved);
+    assert!(restarted.status(NOW).unwrap().valid);
+
     let mut damaged = store.read_raw().unwrap().unwrap();
     damaged.push('x');
     fs::write(store.path(), damaged).unwrap();

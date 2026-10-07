@@ -1,4 +1,5 @@
 import { isTauriRuntime } from './runtime.ts'
+import { androidLicense, isAndroidRuntime } from './androidLicense.ts'
 import type { LicenseStatus } from './types.ts'
 
 async function invokeCommand<T>(command: string, args?: Record<string, unknown>) {
@@ -8,14 +9,16 @@ async function invokeCommand<T>(command: string, args?: Record<string, unknown>)
 }
 
 export function getLicenseStatus() {
+  if (isAndroidRuntime()) return androidLicense.getLicenseStatus()
   return invokeCommand<LicenseStatus>('get_license_status')
 }
 
 export function activateLicense(license: string) {
+  if (isAndroidRuntime()) return androidLicense.activateLicense({ license })
   return invokeCommand<LicenseStatus>('activate_license', { license })
 }
 
 export function deactivateLicense() {
+  if (isAndroidRuntime()) return androidLicense.deactivateLicense()
   return invokeCommand<LicenseStatus>('deactivate_license')
 }
-

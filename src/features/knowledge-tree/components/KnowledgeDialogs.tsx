@@ -1,5 +1,6 @@
-import { Link2, Plus, Tag, X } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Link2, Plus, Tag } from 'lucide-react'
+import { useState } from 'react'
+import { Modal } from '../../../components/Modal'
 import { Button, GhostButton, Select, TextArea, TextInput } from '../../../components/ui'
 import type { TreeIndex } from '../utils/tree'
 import { getBreadcrumb, getDescendants } from '../utils/tree'
@@ -79,10 +80,5 @@ export function RelationDialog({ node, nodes, onClose, onSave }: { node: Knowled
 }
 
 function Dialog({ title, caption, children, onClose }: { title: string; caption?: string; children: React.ReactNode; onClose: () => void }) {
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => event.key === 'Escape' && onClose()
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
-  return <div className="fixed inset-0 z-50 grid place-items-end bg-slate-950/35 p-0 backdrop-blur-[2px] sm:place-items-center sm:p-4" role="dialog" aria-modal="true"><div className="max-h-[92dvh] w-full overflow-y-auto rounded-t-2xl bg-white p-4 shadow-2xl sm:max-w-xl sm:rounded-2xl sm:p-5"><div className="mb-4 flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="text-lg font-semibold text-slate-950">{title}</h2>{caption && <p className="mt-1 truncate text-xs text-slate-500">{caption}</p>}</div><button type="button" onClick={onClose} className="flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100" aria-label="关闭"><X size={17} /></button></div>{children}</div></div>
+  return <Modal title={title} caption={caption} onClose={onClose}>{children}</Modal>
 }

@@ -58,10 +58,10 @@ export function LicenseActivation({ onActivated }: { onActivated: (status: Licen
           <h1 className="mt-6 text-2xl font-semibold text-slate-950">激活产品</h1>
           <p className="mt-2 max-w-[56ch] text-sm leading-6 text-slate-600">感谢购买上岸资料库。请粘贴购买后获得的完整授权码。</p>
 
-          <label className="mt-7 grid gap-2 text-sm font-medium text-slate-700">
-            授权码
+          <div className="mt-7 grid gap-2 text-sm font-medium text-slate-700">
+            <label htmlFor="activation-license">授权码</label>
             <textarea
-              autoFocus
+              id="activation-license"
               autoComplete="off"
               spellCheck={false}
               value={license}
@@ -70,9 +70,9 @@ export function LicenseActivation({ onActivated }: { onActivated: (status: Licen
                 if (error) setError('')
               }}
               placeholder="SL1.粘贴完整授权码"
-              className="min-h-36 w-full resize-y overflow-auto rounded-xl border border-slate-200 bg-white px-3 py-3 font-mono text-sm leading-6 text-slate-900 outline-none transition placeholder:font-sans placeholder:text-slate-500 hover:border-slate-300 focus:border-blue-300 focus:ring-3 focus:ring-blue-100"
+              className="min-h-36 w-full resize-y overflow-auto break-all rounded-xl border border-slate-200 bg-white px-3 py-3 font-mono text-base leading-6 text-slate-900 outline-none transition placeholder:font-sans placeholder:text-slate-500 hover:border-slate-300 focus:border-blue-300 focus:ring-3 focus:ring-blue-100 sm:text-sm"
             />
-          </label>
+          </div>
           <div aria-live="polite" className="min-h-7 pt-2">
             {error && <p className="text-sm leading-5 text-red-700">{error}</p>}
           </div>
@@ -88,24 +88,24 @@ export function LicenseActivation({ onActivated }: { onActivated: (status: Licen
 
 function LicenseFrame({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-8 sm:px-6">
+    <div className="license-frame flex min-h-dvh items-center justify-center bg-slate-50 px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))] sm:px-6">
       <main className="grid w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-soft lg:grid-cols-[320px_minmax(0,1fr)]">
-        <section className="flex flex-col justify-between bg-slate-950 p-7 text-white sm:p-9">
+        <section className="flex flex-col justify-between bg-slate-950 p-5 text-white sm:p-9">
           <div>
             <div className="flex size-12 items-center justify-center rounded-xl bg-white/10">
               <BookOpen size={24} />
             </div>
-            <p className="mt-6 text-xl font-semibold text-white">上岸资料库</p>
+            <p className="mt-3 text-xl font-semibold text-white lg:mt-6">上岸资料库</p>
             <p className="mt-2 text-sm text-slate-300">本地个人学习系统</p>
           </div>
-          <div className="mt-12">
+          <div className="mt-12 hidden lg:block">
             <div className="flex items-center gap-2 text-sm font-medium text-emerald-300">
               <ShieldCheck size={17} /> 完全离线授权
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-300">授权和学习数据都留在当前设备。无需注册账户，也不连接授权服务器。</p>
           </div>
         </section>
-        <section className="p-7 sm:p-10">{children}</section>
+        <section className="min-w-0 p-5 sm:p-10">{children}</section>
       </main>
     </div>
   )

@@ -19,6 +19,7 @@ release-test
 src-tauri/target
 **/target
 crates/*/Cargo.lock
+!crates/license-android/Cargo.lock
 
 # Editor directories and files
 .vscode/*
@@ -44,3 +45,5 @@ license-exports/
 tools/license-issuer/.local-data/
 tools/license-issuer/src-tauri/issuer-data/
 tools/license-issuer/src-tauri/gen/
+public/pdfjs/
+.codex-tmp/

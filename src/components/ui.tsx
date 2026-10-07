@@ -42,7 +42,7 @@ export function DangerButton({ className = '', ...props }: ButtonHTMLAttributes<
   return (
     <button
       {...props}
-      className={`inline-flex min-h-9 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-200 ${className}`}
+      className={`inline-flex min-h-9 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-200 disabled:cursor-not-allowed disabled:opacity-40 ${className}`}
     />
   )
 }

@@ -6,11 +6,12 @@ export function isTauriRuntime() {
 
 export function resolveLicenseSurface(input: {
   tauri: boolean
+  nativeAndroid?: boolean
   demo: boolean
   checking: boolean
   status: LicenseStatus | null
 }): LicenseSurface {
-  if (!input.tauri) return input.demo ? 'unlocked' : 'desktop-only'
+  if (!input.tauri && !input.nativeAndroid) return input.demo ? 'unlocked' : 'desktop-only'
   if (input.checking) return 'checking'
   return input.status?.valid && input.status.state === 'valid' ? 'unlocked' : 'activation'
 }

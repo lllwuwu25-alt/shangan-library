@@ -6,10 +6,12 @@ import {
   Pause,
   Play,
   RotateCcw,
+  Settings,
   Trash2,
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FocusCompletion } from '../components/FocusCompletion'
+import { useCompactLayout } from '../lib/useMobileViewport'
 import { PageHeader } from '../components/Layout'
 import { Button, Card, DangerButton, EmptyState, GhostButton, SectionTitle, Select, StatCard, TextInput } from '../components/ui'
 import { defaultSubjects, subjectOptions } from '../constants'
@@ -43,6 +45,7 @@ const formatDateTime = (iso: string) => {
 const totalMinutes = (sessions: PomodoroSession[]) => sessions.reduce((sum, item) => sum + item.minutes, 0)
 
 export function Pomodoro() {
+  const compact = useCompactLayout()
   const pageRef = useRef<HTMLDivElement>(null)
   const sessions = useStudyStore((state) => state.pomodoroSessions)
   const addPomodoroSession = useStudyStore((state) => state.addPomodoroSession)
@@ -155,10 +158,22 @@ export function Pomodoro() {
     }
   }
 
-  const exitFocusView = async () => {
+  const exitFocusView = useCallback(async () => {
     setIsFocusView(false)
     if (document.fullscreenElement) await document.exitFullscreen()
+  }, [])
+
+  const requestReset = () => {
+    if (hasStarted && remainingSeconds > 0 && !window.confirm('重置会结束当前这轮计时，未完成的时长不会计入记录。确认重置？')) return
+    resetTimer()
   }
+
+  useEffect(() => {
+    if (!isFocusView) return
+    const back = (event: Event) => { event.preventDefault(); void exitFocusView() }
+    window.addEventListener('app-back', back)
+    return () => window.removeEventListener('app-back', back)
+  }, [isFocusView, exitFocusView])
 
   const currentWeek = weekRange(0)
   const focusSessions = sessions.filter((item) => item.mode === '专注')
@@ -181,7 +196,7 @@ export function Pomodoro() {
     <div ref={pageRef} className={isFocusView ? 'min-h-screen bg-slate-950' : 'space-y-5'}>
       {showCompletion && <FocusCompletion minutes={customMinutes} title={title.trim() || '专注学习'} onClose={closeCompletion} />}
       {isFocusView ? (
-        <section className="fixed inset-0 z-50 flex min-h-[100dvh] flex-col overflow-y-auto bg-slate-950 px-5 py-5 text-white sm:px-8 sm:py-7">
+        <section className="focus-view fixed inset-0 z-50 flex min-h-[100dvh] flex-col overflow-y-auto bg-slate-950 px-4 py-5 text-white sm:px-8 sm:py-7">
           <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4">
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-blue-300">{mode}</p>
@@ -191,6 +206,7 @@ export function Pomodoro() {
             <button
               type="button"
               onClick={exitFocusView}
+              aria-label="退出全屏"
               className="flex h-10 shrink-0 items-center gap-2 rounded-xl bg-white/10 px-3 text-sm font-medium text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
               <Minimize2 size={17} />
@@ -198,8 +214,8 @@ export function Pomodoro() {
             </button>
           </header>
 
-          <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center py-8 text-center">
-            <div className="mb-7 flex flex-wrap justify-center gap-2">
+          <div className="focus-view__main mx-auto flex w-full max-w-6xl flex-1 flex-col items-center justify-center py-8 text-center">
+            <div className="focus-view__modes mb-7 flex flex-wrap justify-center gap-2">
               {modeOptions.map((item) => (
                 <button
                   key={item.mode}
@@ -216,20 +232,20 @@ export function Pomodoro() {
             </div>
 
             <div
-              className="relative grid size-[min(72vw,58vh,34rem)] min-h-64 min-w-64 place-items-center rounded-full p-3"
+              className="focus-view__ring relative grid size-[min(76vw,58dvh,34rem)] min-h-52 min-w-52 place-items-center rounded-full p-3"
               style={{ background: `conic-gradient(rgb(59 130 246) ${progress}%, rgb(30 41 59) ${progress}% 100%)` }}
               aria-label={`剩余时间 ${formatClock(remainingSeconds)}`}
             >
               <div className="absolute inset-3 rounded-full bg-slate-950" />
               <div className="relative">
-                <p className="font-mono text-6xl font-semibold text-white sm:text-8xl lg:text-9xl">{formatClock(remainingSeconds)}</p>
+                <p className="focus-clock whitespace-nowrap font-mono text-5xl font-semibold text-white sm:text-8xl lg:text-9xl">{formatClock(remainingSeconds)}</p>
                 <p className="mt-4 text-sm text-slate-400 sm:text-base">
                   {isRunning ? '正在专注，请保持当前节奏' : remainingSeconds === 0 ? '本轮计时已完成' : '准备好后开始计时'}
                 </p>
               </div>
             </div>
 
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <div className="focus-view__controls mt-8 flex flex-wrap justify-center gap-3">
               <button
                 type="button"
                 disabled={remainingSeconds === 0}
@@ -241,7 +257,7 @@ export function Pomodoro() {
               </button>
               <button
                 type="button"
-                onClick={() => resetTimer()}
+                onClick={requestReset}
                 className="flex h-12 items-center justify-center gap-2 rounded-xl bg-white/10 px-5 text-sm font-medium text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-blue-400"
               >
                 <RotateCcw size={18} />
@@ -250,15 +266,17 @@ export function Pomodoro() {
             </div>
           </div>
 
-          <p className="text-center text-xs text-slate-500">按 Esc 退出全屏 · 倒计时结束后自动记录到本地</p>
+          <p className="text-center text-xs text-slate-500">倒计时结束后自动记录到本地</p>
         </section>
       ) : (
         <>
       <PageHeader title="番茄钟" description="用一个简单的本地计时器记录专注时长，适合刷题、背诵、整理资料和复盘。" />
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-        <Card className="overflow-hidden p-0">
-          <div className="border-b border-slate-200 px-5 py-4">
+        <Card className="mobile-timer-card flex flex-col overflow-hidden p-0">
+          <details className="order-2 border-t border-slate-200 md:order-1 md:border-t-0" open={!compact}>
+            <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-slate-700 md:hidden"><span>计时设置</span><span className="truncate text-xs text-slate-500">{customMinutes} 分钟 · {safeSubject}</span><Settings size={16} className="shrink-0 text-slate-400" /></summary>
+          <div className="px-4 py-4 md:border-b md:border-slate-200 md:px-5">
             <SectionTitle title="专注计时" caption="倒计时归零后自动写入本地记录，刷新页面也不会丢失。" />
             <div className="grid gap-3 md:grid-cols-2">
               <TextInput value={title} onChange={(event) => setTitle(event.target.value)} placeholder="本次专注内容" disabled={hasStarted} />
@@ -295,37 +313,41 @@ export function Pomodoro() {
               <ListTodo size={14} className="mt-0.5 shrink-0" />
               首次开始后会锁定本轮设置；归零时自动记录，但不会自动把关联任务标记为完成。
             </p>
+            <GhostButton className="mt-3 md:hidden" type="button" onClick={() => setShowCompletion(true)}>预览完成动效</GhostButton>
           </div>
+          </details>
 
-          <div className="grid place-items-center px-5 py-10 text-center">
-            <div className="relative grid size-64 place-items-center rounded-full bg-slate-50 ring-1 ring-slate-200 sm:size-72">
+          <div className="order-1 grid place-items-center px-4 py-5 text-center md:order-2 md:px-5 md:py-10">
+            <div className="mb-4 grid w-full grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1 md:hidden" aria-label="计时模式">{modeOptions.map((item) => <button key={item.mode} type="button" disabled={hasStarted} aria-pressed={mode === item.mode} onClick={() => changeMode(item.mode)} className={`min-h-11 rounded-lg text-sm font-medium disabled:opacity-50 ${mode === item.mode ? 'bg-white text-blue-700' : 'text-slate-600'}`}>{item.mode}</button>)}</div>
+            <div className="mobile-timer-ring relative grid size-64 place-items-center rounded-full bg-slate-50 ring-1 ring-slate-200 sm:size-72">
               <div className="absolute inset-4 rounded-full border-[10px] border-blue-100" />
               <div className="absolute inset-4 rounded-full border-[10px] border-blue-600 border-l-transparent border-t-transparent" />
               <div className="relative">
                 <p className="text-sm font-medium text-blue-700">{customMinutes} 分钟{mode}</p>
-                <p className="mt-3 font-mono text-6xl font-semibold tracking-tight text-slate-950 sm:text-7xl">{formatClock(remainingSeconds)}</p>
+                <p className="timer-clock mt-3 whitespace-nowrap font-mono text-5xl font-semibold text-slate-950 sm:text-7xl">{formatClock(remainingSeconds)}</p>
                 <p className="mt-3 text-sm text-slate-500">{mode === '专注' ? '保持当前节奏' : '休息一下，下一轮更稳'}</p>
               </div>
             </div>
 
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
-              <Button type="button" disabled={remainingSeconds === 0} onClick={toggleTimer}>
-                {isRunning ? '暂停' : '开始'}
+            <div className="mt-5 grid w-full grid-cols-2 gap-2 md:mt-6 md:flex md:w-auto md:flex-wrap md:justify-center">
+              <Button className="col-span-2 min-h-12 text-base md:min-h-9 md:text-sm" type="button" onClick={() => { if (remainingSeconds === 0) { resetTimer(); setHasStarted(true); setIsRunning(true) } else toggleTimer() }}>
+                {isRunning ? <Pause size={18} /> : <Play size={18} />}
+                {isRunning ? '暂停' : remainingSeconds === 0 ? '再来一轮' : hasStarted ? '继续专注' : '开始'}
               </Button>
               <GhostButton type="button" onClick={enterFocusView}>
                 <Maximize2 size={16} />
                 全屏专注
               </GhostButton>
-              <GhostButton type="button" onClick={() => resetTimer()}>
+              <GhostButton type="button" onClick={requestReset}>
                 <RotateCcw size={16} />
                 重置
               </GhostButton>
-              <GhostButton type="button" onClick={() => setShowCompletion(true)}>预览完成动效</GhostButton>
+              <div className="hidden md:block"><GhostButton type="button" onClick={() => setShowCompletion(true)}>预览完成动效</GhostButton></div>
             </div>
           </div>
         </Card>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-1">
           <StatCard label="今日专注" value={`${Math.round(stats.todayMinutes / 60 * 10) / 10} 小时`} detail={`${stats.todayMinutes} 分钟`} icon={<CalendarDays size={18} />} tone="blue" />
           <StatCard label="本周专注" value={`${Math.round(stats.weekMinutes / 60 * 10) / 10} 小时`} detail={`${currentWeek.start} 至 ${currentWeek.end}`} icon={<CalendarDays size={18} />} tone="green" />
           <StatCard label="累计专注" value={`${Math.round(stats.totalMinutes / 60 * 10) / 10} 小时`} detail={`${stats.totalMinutes} 分钟`} icon={<CalendarDays size={18} />} tone="amber" />

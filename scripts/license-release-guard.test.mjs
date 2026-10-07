@@ -29,6 +29,15 @@ test('rejects version drift and issuer paths in customer artifacts', () => {
   assert.match(issues, /issuer path/i)
 })
 
+test('rejects Android release workflows that omit licensing checks or enable demo mode', () => {
+  const root = releaseFixture()
+  const path = join(root, '.github/workflows/android-apk.yml')
+  writeFileSync(path, 'run: npm run android:sync\nVITE_DEMO_MODE: "true"\n')
+  assert.match(checkRelease({ root, trackedFiles: [] }).join('\n'), /Android.*license/i)
+  writeFileSync(path, 'run: npm run license:check-release\nrun: cargo test --locked --manifest-path crates/license-android/Cargo.toml\nVITE_DEMO_MODE: "false"\n')
+  assert.deepEqual(checkRelease({ root, trackedFiles: [] }), [])
+})
+
 function releaseFixture(options = {}) {
   const root = mkdtempSync(join(tmpdir(), 'shangan-release-guard-'))
   mkdirSync(join(root, 'src-tauri/src/license'), { recursive: true })

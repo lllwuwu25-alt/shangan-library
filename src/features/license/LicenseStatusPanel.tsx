@@ -4,25 +4,26 @@ import { Card, DangerButton, GhostButton, Pill, SectionTitle } from '../../compo
 import { deactivateLicense, getLicenseStatus } from './licenseClient.ts'
 import { licenseErrorMessage } from './messages.ts'
 import { isTauriRuntime } from './runtime.ts'
+import { isAndroidRuntime } from './androidLicense.ts'
 import type { LicenseStatus } from './types.ts'
 
-const APP_VERSION = '0.7.0'
+const APP_VERSION = '0.7.1'
 
 export function LicenseStatusPanel() {
-  const tauri = isTauriRuntime()
+  const licensedRuntime = isTauriRuntime() || isAndroidRuntime()
   const [status, setStatus] = useState<LicenseStatus | null>(null)
   const [message, setMessage] = useState('')
-  const [loading, setLoading] = useState(tauri)
+  const [loading, setLoading] = useState(licensedRuntime)
 
   useEffect(() => {
-    if (!tauri) return
+    if (!licensedRuntime) return
     let active = true
     void getLicenseStatus()
       .then((nextStatus) => { if (active) setStatus(nextStatus) })
       .catch((error) => { if (active) setMessage(licenseErrorMessage(error)) })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
-  }, [tauri])
+  }, [licensedRuntime])
 
   const copyId = async () => {
     if (!status?.licenseId) return
@@ -46,9 +47,9 @@ export function LicenseStatusPanel() {
   return (
     <Card>
       <SectionTitle title="授权与版本" caption="授权验证仅在当前设备本地完成。" action={<ShieldCheck size={18} className="text-blue-600" />} />
-      {!tauri ? (
+      {!licensedRuntime ? (
         <div className="rounded-xl bg-blue-50 p-4 text-sm text-blue-800 ring-1 ring-blue-100">
-          当前为网页演示版，不保存或验证商业授权。桌面正式版会在首次启动时要求激活。
+          当前为网页演示版，不保存或验证商业授权。桌面与安卓正式版会在首次启动时要求激活。
         </div>
       ) : loading ? (
         <div className="space-y-3" aria-live="polite">

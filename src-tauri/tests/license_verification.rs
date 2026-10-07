@@ -58,6 +58,16 @@ fn accepts_a_valid_lifetime_pro_license() {
 }
 
 #[test]
+fn accepts_the_same_fixed_key_license_with_outer_whitespace_and_original_payload_bytes() {
+    let key = SigningKey::from_bytes(&[42; 32]);
+    let bytes = serde_json::to_vec_pretty(&payload()).unwrap();
+    let raw = encode_license(&bytes, &key.sign(&bytes).to_bytes());
+    let status = verify_license(&format!("\n  {raw}\n"), &registry(&key), NOW).unwrap();
+    assert!(status.valid);
+    assert_eq!(status.license_id.as_deref(), Some("0199-4f3e-test-license"));
+}
+
+#[test]
 fn rejects_payload_field_tampering() {
     let signing_key = signing_key();
     let original = payload();

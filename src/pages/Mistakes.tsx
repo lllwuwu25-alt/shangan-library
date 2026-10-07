@@ -1,5 +1,5 @@
 import { FileStack, Paperclip, Plus, Search, Trash2, Upload } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { AttachmentList, UploadHint } from '../components/AttachmentList'
 import { FilePicker } from '../components/FilePicker'
 import { FilePreviewModal } from '../components/FilePreviewModal'
@@ -11,6 +11,7 @@ import { useStudyStore } from '../store/useStudyStore'
 import type { FileAttachment, Mistake, MistakeImportance, MistakeStatus, Subject } from '../types'
 
 export function Mistakes() {
+  const composerRef = useRef<HTMLDivElement>(null)
   const { mistakes, settings, addMistake, addMistakes, updateMistake, deleteMistake, toggleMistake } = useStudyStore()
   const [subject, setSubject] = useState<'全部' | Subject>('全部')
   const [status, setStatus] = useState<'全部' | MistakeStatus>('全部')
@@ -41,7 +42,7 @@ export function Mistakes() {
   return (
     <>
       <PageHeader title="错题本" description="记录错因、答案和复盘备注，用状态筛选把注意力放回待复习题目。" />
-      <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4 xl:grid-cols-6">
         <Stat label="累计错题" value={mistakes.length} />
         <Stat label="待复习" value={pending} />
         <Stat label="已掌握" value={mastered} />
@@ -51,7 +52,7 @@ export function Mistakes() {
       </div>
       <div className="mt-5 grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card>
-          <SectionTitle title="错题列表" caption={`${filtered.length} / ${mistakes.length} 条错题`} />
+          <SectionTitle title="错题列表" caption={`${filtered.length} / ${mistakes.length} 条错题`} action={<Button type="button" className="2xl:hidden" onClick={() => composerRef.current?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' })}><Plus size={16} />新增错题</Button>} />
           <div className="mb-4 grid gap-3 rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200/70 md:grid-cols-[minmax(0,1fr)_160px_160px]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={17} />
@@ -96,7 +97,7 @@ export function Mistakes() {
             ))}
           </div>
         </Card>
-        <div className="space-y-5">
+        <div ref={composerRef} className="scroll-mt-24 space-y-5">
           <Card>
             <SectionTitle title="新增错题" caption="用等级标记优先复习顺序。" />
             <div className="grid gap-3">
@@ -197,9 +198,9 @@ function MistakeAttachments({
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <Card>
-      <p className="break-words text-sm text-slate-500">{label}</p>
-      <p className="mt-1 break-words text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
+    <Card className="p-3 sm:p-5">
+      <p className="break-words text-xs text-slate-500 sm:text-sm">{label}</p>
+      <p className="mt-1 break-words text-2xl font-semibold text-slate-950 sm:text-3xl">{value}</p>
     </Card>
   )
 }

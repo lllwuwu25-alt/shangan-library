@@ -19,3 +19,6 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# JNI symbols include this class and method name.
+-keep class com.shangan.library.license.LicensePlugin { *; }

@@ -3,12 +3,16 @@ apply plugin: 'com.android.application'
 android {
     namespace = "com.shangan.library"
     compileSdk = rootProject.ext.compileSdkVersion
+    ndkVersion "28.2.13676358"
     defaultConfig {
         applicationId "com.shangan.library"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "0.7.1"
+        ndk {
+            abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+        }
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -22,7 +26,31 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    sourceSets.main.jniLibs.srcDirs = [layout.buildDirectory.dir('rustJniLibs').get().asFile]
 }
+
+def rustRoot = rootProject.projectDir.parentFile
+def rustOutput = layout.buildDirectory.dir('rustJniLibs').get().asFile
+def cargoExecutable = new File(System.getProperty('user.home'),
+    System.getProperty('os.name').toLowerCase().contains('windows') ? '.cargo/bin/cargo.exe' : '.cargo/bin/cargo')
+
+tasks.register('buildLicenseVerifier', Exec) {
+    workingDir new File(rustRoot, 'crates/license-android')
+    inputs.files(fileTree(new File(rustRoot, 'crates/license-android')) { exclude 'target/**' })
+    inputs.files(fileTree(new File(rustRoot, 'crates/license-protocol')) { exclude 'target/**' })
+    inputs.files(fileTree(new File(rustRoot, 'src-tauri/src/license')))
+    inputs.file 'build.gradle'
+    outputs.dir rustOutput
+    doFirst {
+        environment 'ANDROID_NDK_HOME', android.ndkDirectory.absolutePath
+    }
+    commandLine cargoExecutable.absolutePath, 'ndk',
+        '-t', 'arm64-v8a', '-t', 'armeabi-v7a', '-t', 'x86_64',
+        '--platform', '24', '-o', rustOutput.absolutePath,
+        'build', '--release', '--locked'
+}
+
+tasks.named('preBuild').configure { dependsOn 'buildLicenseVerifier' }
 
 repositories {
     flatDir{

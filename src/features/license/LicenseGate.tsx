@@ -1,4 +1,5 @@
 import { BookOpen, Monitor } from 'lucide-react'
+import { isAndroidRuntime } from './androidLicense.ts'
 import type { ReactNode } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { getLicenseStatus } from './licenseClient.ts'
@@ -8,21 +9,23 @@ import type { LicenseStatus } from './types.ts'
 
 export function LicenseGate({ children }: { children: ReactNode }) {
   const tauri = useMemo(() => isTauriRuntime(), [])
+  const nativeAndroid = useMemo(() => isAndroidRuntime(), [])
+  const licensedRuntime = tauri || nativeAndroid
   const demo = import.meta.env.VITE_DEMO_MODE === 'true' || import.meta.env.DEV
-  const [checking, setChecking] = useState(tauri)
+  const [checking, setChecking] = useState(licensedRuntime)
   const [status, setStatus] = useState<LicenseStatus | null>(null)
 
   useEffect(() => {
-    if (!tauri) return
+    if (!licensedRuntime) return
     let active = true
     void getLicenseStatus()
       .then((nextStatus) => { if (active) setStatus(nextStatus) })
       .catch(() => { if (active) setStatus(null) })
       .finally(() => { if (active) setChecking(false) })
     return () => { active = false }
-  }, [tauri])
+  }, [licensedRuntime])
 
-  const surface = resolveLicenseSurface({ tauri, demo, checking, status })
+  const surface = resolveLicenseSurface({ tauri, nativeAndroid, demo, checking, status })
 
   if (surface === 'checking') return <LicenseChecking />
   if (surface === 'activation') return <LicenseActivation onActivated={setStatus} />
@@ -30,8 +33,8 @@ export function LicenseGate({ children }: { children: ReactNode }) {
 
   return (
     <>
-      {!tauri && demo && (
-        <div className="fixed bottom-4 right-4 z-40 rounded-full bg-slate-950 px-3 py-1.5 text-xs font-medium text-white ring-1 ring-white/10" role="status">
+      {!tauri && !nativeAndroid && demo && (
+        <div className="pointer-events-none fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-3 z-10 rounded-full bg-slate-950 px-3 py-1.5 text-xs font-medium text-white ring-1 ring-white/10 lg:bottom-4" role="status">
           网页演示版
         </div>
       )}

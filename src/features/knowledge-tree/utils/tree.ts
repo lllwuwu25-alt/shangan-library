@@ -19,6 +19,39 @@ export function buildTreeIndex(nodes: KnowledgeNode[]): TreeIndex {
 
 export const getChildren = (index: TreeIndex, parentId: string | null) => (index.childrenMap.get(parentId) ?? []).filter((item) => !item.archived)
 
+export const directoryNodeTypes = new Set(['root', 'folder', 'subject', 'chapter', 'topic', 'collection'])
+export type DirectoryRow = { node: KnowledgeNode; depth: number; hasChildren: boolean }
+
+export function getDirectoryRows(index: TreeIndex, query = '', collapsed: ReadonlySet<string> = new Set()) {
+  const directories = new Set([...index.nodeMap.values()].filter((node) => !node.archived && directoryNodeTypes.has(node.type)).map((node) => node.id))
+  const search = query.trim().toLowerCase()
+  const visible = search ? new Set<string>() : directories
+  if (search) {
+    for (const id of directories) {
+      const node = index.nodeMap.get(id)!
+      const title = node.type === 'root' ? '我的资料' : node.title
+      if (!title.toLowerCase().includes(search)) continue
+      visible.add(id)
+      for (const parent of getAncestors(index, id)) if (directories.has(parent.id)) visible.add(parent.id)
+    }
+  }
+  const children = (parentId: string | null) => getChildren(index, parentId).filter((node) => visible.has(node.id))
+  const pending = children(null).reverse().map((node) => ({ node, depth: 0 }))
+  const rows: DirectoryRow[] = []
+  const seen = new Set<string>()
+  while (pending.length) {
+    const entry = pending.pop()!
+    if (seen.has(entry.node.id)) continue
+    seen.add(entry.node.id)
+    const childNodes = children(entry.node.id)
+    rows.push({ ...entry, hasChildren: childNodes.length > 0 })
+    // Searching reveals ancestor paths without changing the user's collapsed branches.
+    if (!search && collapsed.has(entry.node.id)) continue
+    for (const node of childNodes.reverse()) pending.push({ node, depth: entry.depth + 1 })
+  }
+  return rows
+}
+
 export function getAncestors(index: TreeIndex, nodeId: string) {
   const result: KnowledgeNode[] = []
   const seen = new Set<string>([nodeId])
@@ -34,9 +67,11 @@ export function getAncestors(index: TreeIndex, nodeId: string) {
 
 export function getDescendants(index: TreeIndex, nodeId: string) {
   const result: KnowledgeNode[] = []
+  const seen = new Set<string>()
   const visit = (parentId: string) => {
     for (const child of index.childrenMap.get(parentId) ?? []) {
-      if (result.some((item) => item.id === child.id)) continue
+      if (seen.has(child.id)) continue
+      seen.add(child.id)
       result.push(child)
       visit(child.id)
     }

@@ -7,7 +7,7 @@ on:
       - "android-v*"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -34,22 +34,82 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Install Android NDK
+        run: sdkmanager "ndk;28.2.13676358"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+
+      - name: Cache Android license verifier
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: crates/license-android
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --version 4.1.2 --locked
+
       - name: Install dependencies
         run: npm ci
 
       - name: Lint
         run: npm run lint
 
+      - name: Test application and release boundary
+        run: |
+          npm test
+          npm run license:check-release
+
+      - name: Test shared desktop and Android licensing
+        run: cargo test --locked --manifest-path crates/license-android/Cargo.toml
+
       - name: Build web assets and sync Android
         run: npm run android:sync
+        env:
+          VITE_DEMO_MODE: "false"
 
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
 
+      - name: Verify APK includes every license ABI
+        run: |
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep "lib/$abi/liblicense_android.so"
+          done
+
+      - name: Name installable APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk android/app/build/outputs/apk/debug/shangan-library-android-0.7.1.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: shangan-library-android-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android/app/build/outputs/apk/debug/shangan-library-android-0.7.1.apk
           if-no-files-found: error
+
+  release:
+    name: Publish Android download
+    if: startsWith(github.ref, 'refs/tags/android-v')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: shangan-library-android-debug-apk
+          path: android-release
+
+      - name: Publish APK release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: 上岸资料库 Android ${{ github.ref_name }}
+          prerelease: true
+          make_latest: false
+          files: android-release/*.apk
+          body: |
+            安卓手机测试版，包含手机界面优化及与桌面版统一的离线授权。
+            请使用现有有效 SL1 授权码激活。安装包不含个人资料或测试数据。
+            此包为 debug 签名测试 APK，覆盖更新需要与已安装版本签名一致。
+            如果出现签名冲突，请先在旧版备份数据，不要直接卸载。

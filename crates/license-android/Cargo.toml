@@ -1,0 +1,20 @@
+[package]
+name = "license-android"
+version = "0.1.0"
+edition = "2021"
+license = "Proprietary"
+
+[lib]
+name = "license_android"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+license-protocol = { path = "../license-protocol" }
+ed25519-dalek = "=2.2.0"
+serde_json = "=1.0.150"
+thiserror = "2"
+jni = "0.21.1"
+
+[dev-dependencies]
+rand_core = { version = "0.6", features = ["getrandom"] }
+tempfile = "3"

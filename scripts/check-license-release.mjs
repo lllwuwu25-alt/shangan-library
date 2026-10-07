@@ -56,7 +56,7 @@ function checkPublicRegistry(root, issues) {
 }
 
 function checkClientSources(root, issues) {
-  const sourceRoots = ['src', 'src-tauri/src', 'crates/license-protocol/src']
+  const sourceRoots = ['src', 'src-tauri/src', 'crates/license-protocol/src', 'crates/license-android/src', 'android/app/src/main/java']
   for (const sourceRoot of sourceRoots) {
     const absoluteRoot = join(root, sourceRoot)
     if (!existsSync(absoluteRoot)) continue
@@ -80,6 +80,16 @@ function checkTrackedFiles(root, trackedFiles, issues) {
 function checkWorkflows(root, issues) {
   const desktop = safeRead(join(root, '.github/workflows/desktop-build.yml'), issues)
   const pages = safeRead(join(root, '.github/workflows/pwa-pages.yml'), issues)
+  const androidPath = join(root, '.github/workflows/android-apk.yml')
+  if (existsSync(androidPath)) {
+    const android = safeRead(androidPath, issues) || ''
+    if (!android.includes('npm run license:check-release') || !android.includes('crates/license-android/Cargo.toml')) {
+      issues.push('Android workflow must run the license release guard and shared verifier tests.')
+    }
+    if (!/VITE_DEMO_MODE:\s*["']?false["']?/.test(android)) {
+      issues.push('Android license workflow must explicitly disable demo mode.')
+    }
+  }
   if (desktop) {
     if (!desktop.includes('npm run license:check-release')) {
       issues.push('Desktop workflow must run the license release guard.')
@@ -106,7 +116,7 @@ function collectFiles(directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const path = join(directory, entry.name)
     if (entry.isDirectory()) files.push(...collectFiles(path))
-    else if (/\.(?:rs|ts|tsx|js|jsx|mjs|cjs)$/.test(entry.name)) files.push(path)
+    else if (/\.(?:rs|ts|tsx|js|jsx|mjs|cjs|java)$/.test(entry.name)) files.push(path)
   }
   return files
 }

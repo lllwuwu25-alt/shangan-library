@@ -24,6 +24,16 @@ test('resolves desktop, demo and unsupported web surfaces without a bypass', () 
   assert.equal(resolveLicenseSurface({ tauri: false, demo: false, checking: false, status: null }), 'desktop-only')
 })
 
+test('requires Android activation even in demo builds and unlocks only valid licenses', () => {
+  assert.equal(resolveLicenseSurface({ tauri: false, nativeAndroid: true, demo: true, checking: true, status: null }), 'checking')
+  for (const current of [null, status('missing'), status('invalid'), { ...status('valid'), valid: false }]) {
+    assert.equal(resolveLicenseSurface({ tauri: false, nativeAndroid: true, demo: true, checking: false, status: current }), 'activation')
+  }
+  assert.equal(resolveLicenseSurface({ tauri: false, nativeAndroid: true, demo: false, checking: false, status: status('valid') }), 'unlocked')
+  assert.equal(resolveLicenseSurface({ tauri: true, nativeAndroid: true, demo: false, checking: false, status: status('missing') }), 'activation')
+  assert.equal(resolveLicenseSurface({ tauri: false, nativeAndroid: false, demo: false, checking: false, status: null }), 'desktop-only')
+})
+
 test('maps every stable Rust error code to concise Chinese copy', () => {
   const cases = new Map([
     ['MISSING', '尚未找到授权码。'],

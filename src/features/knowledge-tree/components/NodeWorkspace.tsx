@@ -3,6 +3,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { ArrowLeft, ChevronRight, ExternalLink, FilePlus2, Grid2X2, Heart, LayoutList, MoreHorizontal, Plus, Search, Upload } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { FilePicker } from '../../../components/FilePicker'
+import { Modal } from '../../../components/Modal'
+import { useCompactLayout } from '../../../lib/useMobileViewport'
 import type { FileAttachment } from '../../../types'
 import type { TreeIndex } from '../utils/tree'
 import { getBreadcrumb, getChildren } from '../utils/tree'
@@ -21,7 +23,7 @@ type Props = {
   relatedNodes: KnowledgeNode[]
   onSelect: (id: string) => void
   onCreate: (parentId: string) => void
-  onUpload: (parentId: string, files?: FileAttachment[]) => void
+  onUpload: (parentId: string, files?: FileAttachment[]) => void | Promise<void>
   onViewMode: (mode: KnowledgeViewMode) => void
   onFavorite: (node: KnowledgeNode) => void
   onRename: (node: KnowledgeNode) => void
@@ -40,6 +42,7 @@ const virtualLabels: Partial<Record<KnowledgeVirtualView, string>> = {
 const containerTypes = new Set(['root', 'folder', 'subject', 'chapter', 'topic', 'collection'])
 
 export function NodeWorkspace(props: Props) {
+  const compact = useCompactLayout()
   const { selectedNode, virtualView } = props
   const isVirtual = virtualView !== 'tree'
   const isContainer = containerTypes.has(selectedNode.type)
@@ -57,13 +60,13 @@ export function NodeWorkspace(props: Props) {
   return (
     <section className="flex min-h-0 min-w-0 flex-1 flex-col bg-slate-50">
       <div className="border-b border-slate-200 bg-white px-4 py-3 sm:px-5">
-        <div className="flex min-w-0 items-center gap-1 overflow-x-auto pb-0.5 text-xs text-slate-500">
-          {breadcrumb.map((node, index) => <span key={node.id} className="flex shrink-0 items-center gap-1"><button type="button" onClick={() => props.onSelect(node.id)} className="max-w-40 truncate rounded-md px-1 py-0.5 transition hover:bg-slate-100 hover:text-slate-900">{node.type === 'root' ? '我的资料' : node.title}</button>{index < breadcrumb.length - 1 && <ChevronRight size={12} />}</span>)}
+        <div className="hidden min-w-0 flex-wrap items-center gap-1 pb-0.5 text-xs text-slate-500 sm:flex">
+          {breadcrumb.map((node, index) => <span key={node.id} className="flex min-w-0 items-center gap-1"><button type="button" onClick={() => props.onSelect(node.id)} className="max-w-40 truncate rounded-md px-1 py-0.5 transition hover:bg-slate-100 hover:text-slate-900">{node.type === 'root' ? '我的资料' : node.title}</button>{index < breadcrumb.length - 1 && <ChevronRight size={12} />}</span>)}
         </div>
         <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <button type="button" onClick={() => selectedNode.parentId && props.onSelect(selectedNode.parentId)} className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 xl:hidden" aria-label="返回上一级"><ArrowLeft size={17} /></button>
+              {selectedNode.parentId && <button type="button" onClick={() => props.onSelect(selectedNode.parentId!)} className="flex size-11 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 xl:hidden" aria-label="返回上一级"><ArrowLeft size={19} /></button>}
               <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><NodeIcon type={isVirtual ? 'collection' : selectedNode.type} size={18} /></div>
               <div className="min-w-0">
                 <h2 className="truncate text-lg font-semibold text-slate-950 sm:text-xl">{isVirtual ? virtualLabels[virtualView] : selectedNode.title}</h2>
@@ -71,10 +74,10 @@ export function NodeWorkspace(props: Props) {
               </div>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
             {!isVirtual && isContainer && <>
-              <button type="button" onClick={() => props.onCreate(selectedNode.id)} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 text-sm font-medium text-white transition hover:bg-blue-700"><Plus size={15} />新建</button>
-              <FilePicker className="inline-flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60" onFiles={(files) => props.onUpload(selectedNode.id, files)}><Upload size={15} /><span className="hidden sm:inline">导入资料</span></FilePicker>
+              <button type="button" onClick={() => props.onCreate(selectedNode.id)} className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 text-sm font-medium text-white transition hover:bg-blue-700 sm:h-9 sm:flex-none"><Plus size={15} />新建</button>
+              <FilePicker className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 sm:h-9 sm:flex-none" onFiles={(files) => props.onUpload(selectedNode.id, files)}><Upload size={15} /><span>导入资料</span></FilePicker>
             </>}
             <div className="hidden rounded-lg border border-slate-200 bg-white p-0.5 sm:flex">
               <button type="button" onClick={() => props.onViewMode('grid')} className={`flex size-8 items-center justify-center rounded-md ${props.viewMode === 'grid' ? 'bg-slate-100 text-slate-950' : 'text-slate-400 hover:text-slate-700'}`} aria-label="网格视图"><Grid2X2 size={15} /></button>
@@ -84,10 +87,10 @@ export function NodeWorkspace(props: Props) {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-5" aria-label="资料列表">
         {!isVirtual && !isContainer ? <NodeDetails {...props} breadcrumb={breadcrumb} /> : content.length === 0 ? <WorkspaceEmpty isVirtual={isVirtual} isRoot={selectedNode.type === 'root'} onCreate={() => props.onCreate(selectedNode.id)} onUpload={(files) => props.onUpload(selectedNode.id, files)} /> : (
-          <div className={props.viewMode === 'grid' ? 'grid gap-3 sm:grid-cols-2 2xl:grid-cols-3' : 'space-y-2'}>
-            {content.map((node) => <NodeCard key={node.id} node={node} file={node.metadata?.fileId ? props.files.find((file) => file.id === node.metadata?.fileId) : undefined} tags={props.nodeTags.get(node.id) ?? []} mode={props.viewMode} onSelect={props.onSelect} onPreview={props.onPreview} onFavorite={props.onFavorite} onRename={props.onRename} onMove={props.onMove} onDelete={props.onDelete} />)}
+          <div className={!compact && props.viewMode === 'grid' ? 'grid gap-3 sm:grid-cols-2 2xl:grid-cols-3' : 'space-y-2'}>
+            {content.map((node) => <NodeCard key={node.id} node={node} file={node.metadata?.fileId ? props.files.find((file) => file.id === node.metadata?.fileId) : undefined} tags={props.nodeTags.get(node.id) ?? []} mode={compact ? 'list' : props.viewMode} compact={compact} onSelect={props.onSelect} onPreview={props.onPreview} onFavorite={props.onFavorite} onRename={props.onRename} onMove={props.onMove} onDelete={props.onDelete} />)}
           </div>
         )}
       </div>
@@ -95,7 +98,7 @@ export function NodeWorkspace(props: Props) {
   )
 }
 
-function NodeCard({ node, file, tags, mode, onSelect, onPreview, onFavorite, onRename, onMove, onDelete }: { node: KnowledgeNode; file?: ResourceFile; tags: string[]; mode: KnowledgeViewMode; onSelect: (id: string) => void; onPreview: (file: ResourceFile) => void; onFavorite: (node: KnowledgeNode) => void; onRename: (node: KnowledgeNode) => void; onMove: (id: string) => void; onDelete: (id: string) => void }) {
+function NodeCard({ node, file, tags, mode, compact, onSelect, onPreview, onFavorite, onRename, onMove, onDelete }: { node: KnowledgeNode; file?: ResourceFile; tags: string[]; mode: KnowledgeViewMode; compact: boolean; onSelect: (id: string) => void; onPreview: (file: ResourceFile) => void; onFavorite: (node: KnowledgeNode) => void; onRename: (node: KnowledgeNode) => void; onMove: (id: string) => void; onDelete: (id: string) => void }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({ id: node.id })
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: node.id })
@@ -107,7 +110,7 @@ function NodeCard({ node, file, tags, mode, onSelect, onPreview, onFavorite, onR
   return (
     <article ref={setDropRef} className={`group relative min-w-0 transition ${isOver && !isDragging ? 'scale-[1.01]' : ''}`}>
       <div ref={setDragRef} style={{ transform: CSS.Translate.toString(transform) }} className={`flex min-w-0 ${mode === 'grid' ? 'min-h-32 flex-col p-4' : 'min-h-14 items-center px-3 py-2'} rounded-xl border bg-white transition ${isDragging ? 'opacity-40 shadow-xl' : isOver ? 'border-blue-300 bg-blue-50 shadow-sm' : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'}`}>
-        <button type="button" {...listeners} {...attributes} onClick={open} onDoubleClick={() => onRename(node)} className={`flex min-w-0 flex-1 text-left ${mode === 'grid' ? 'flex-col' : 'items-center gap-3'}`}>
+        <button type="button" {...(!compact ? listeners : {})} {...attributes} onClick={open} onDoubleClick={() => !compact && onRename(node)} className={`flex min-w-0 flex-1 pr-10 text-left sm:pr-0 ${mode === 'grid' ? 'flex-col' : 'items-center gap-3'}`}>
           <span className={`flex shrink-0 items-center justify-center rounded-xl ${mode === 'grid' ? 'size-10' : 'size-9'} ${containerTypes.has(node.type) ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-500'}`}><NodeIcon type={node.type} size={mode === 'grid' ? 19 : 16} /></span>
           <span className={`min-w-0 ${mode === 'grid' ? 'mt-3 block w-full' : 'flex-1'}`}>
             <span className="block truncate text-sm font-medium text-slate-900">{node.title}</span>
@@ -115,9 +118,9 @@ function NodeCard({ node, file, tags, mode, onSelect, onPreview, onFavorite, onR
           </span>
           {mode === 'list' && tags.length > 0 && <span className="hidden max-w-40 truncate text-xs text-slate-400 lg:block">#{tags.join(' #')}</span>}
         </button>
-        <button type="button" onClick={() => setMenuOpen((value) => !value)} className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-lg text-slate-400 opacity-100 transition hover:bg-slate-100 hover:text-slate-700 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100" aria-label="更多操作"><MoreHorizontal size={16} /></button>
+        <button type="button" onClick={() => setMenuOpen((value) => !value)} className="absolute right-1 top-1 flex size-11 items-center justify-center rounded-lg text-slate-400 opacity-100 transition hover:bg-slate-100 hover:text-slate-700 sm:right-2 sm:top-2 sm:size-8 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100" aria-label={`${node.title} 更多操作`}><MoreHorizontal size={18} /></button>
         {node.favorite && <Heart size={13} className={`${mode === 'grid' ? 'absolute bottom-3 right-3' : 'mr-2'} fill-red-400 text-red-400`} />}
-        {menuOpen && <div className="absolute right-2 top-10 z-20 w-36 rounded-xl border border-slate-200 bg-white p-1.5 text-sm shadow-xl" onMouseLeave={() => setMenuOpen(false)}>
+        {menuOpen && !compact && <div className="absolute right-2 top-10 z-20 w-36 rounded-xl border border-slate-200 bg-white p-1.5 text-sm shadow-xl" onMouseLeave={() => setMenuOpen(false)}>
           <button type="button" onClick={() => { open(); setMenuOpen(false) }} className="flex w-full rounded-lg px-2.5 py-2 hover:bg-slate-50">打开</button>
           <button type="button" onClick={() => { onFavorite(node); setMenuOpen(false) }} className="flex w-full rounded-lg px-2.5 py-2 hover:bg-slate-50">{node.favorite ? '取消收藏' : '收藏'}</button>
           <button type="button" onClick={() => { onRename(node); setMenuOpen(false) }} className="flex w-full rounded-lg px-2.5 py-2 hover:bg-slate-50">重命名</button>
@@ -125,6 +128,13 @@ function NodeCard({ node, file, tags, mode, onSelect, onPreview, onFavorite, onR
           <button type="button" onClick={() => { onDelete(node.id); setMenuOpen(false) }} className="flex w-full rounded-lg px-2.5 py-2 text-red-600 hover:bg-red-50">删除</button>
         </div>}
       </div>
+      {menuOpen && compact && <Modal title={node.title} caption="资料操作" onClose={() => setMenuOpen(false)}><div className="grid gap-1">
+        <button type="button" onClick={() => { setMenuOpen(false); open() }} className="rounded-lg px-3 py-3 text-left text-slate-800">打开</button>
+        <button type="button" onClick={() => { setMenuOpen(false); onFavorite(node) }} className="rounded-lg px-3 py-3 text-left text-slate-800">{node.favorite ? '取消收藏' : '收藏'}</button>
+        <button type="button" onClick={() => { setMenuOpen(false); onRename(node) }} className="rounded-lg px-3 py-3 text-left text-slate-800">重命名与编辑</button>
+        <button type="button" onClick={() => { setMenuOpen(false); onMove(node.id) }} className="rounded-lg px-3 py-3 text-left text-slate-800">移动到其他目录</button>
+        <button type="button" onClick={() => { setMenuOpen(false); onDelete(node.id) }} className="rounded-lg px-3 py-3 text-left text-red-600">删除</button>
+      </div></Modal>}
     </article>
   )
 }
@@ -173,5 +183,5 @@ function Info({ label, value }: { label: string; value: string }) {
 function WorkspaceEmpty({ isVirtual, isRoot, onCreate, onUpload }: { isVirtual: boolean; isRoot: boolean; onCreate: () => void; onUpload: (files: FileAttachment[]) => void }) {
   const title = isVirtual ? '这里暂时没有匹配内容' : isRoot ? '创建你的第一棵学习知识树' : '这个节点还没有内容'
   const description = isVirtual ? '继续学习、收藏或更新状态后，内容会自动出现在这里。' : isRoot ? '把资料从堆起来，变成真正有结构、能持续使用的学习系统。' : '可以继续创建下一级知识节点，或直接导入文件。'
-  return <div className="grid min-h-[360px] place-items-center"><div className="max-w-md text-center"><span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600"><Search size={23} /></span><h3 className="mt-4 text-base font-semibold text-slate-950">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>{!isVirtual && <div className="mt-5 flex justify-center gap-2"><button type="button" onClick={onCreate} className="inline-flex h-9 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white"><Plus size={15} />创建节点</button><FilePicker className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700" onFiles={onUpload}><FilePlus2 size={15} />导入资料</FilePicker></div>}</div></div>
+  return <div className="grid min-h-[240px] place-items-center md:min-h-[360px]"><div className="max-w-md text-center"><span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600"><Search size={23} /></span><h3 className="mt-4 text-base font-semibold text-slate-950">{title}</h3><p className="mt-2 text-sm leading-6 text-slate-500">{description}</p>{!isVirtual && <div className="mt-5 hidden justify-center gap-2 md:flex"><button type="button" onClick={onCreate} className="inline-flex h-9 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-medium text-white"><Plus size={15} />创建节点</button><FilePicker className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700" onFiles={onUpload}><FilePlus2 size={15} />导入资料</FilePicker></div>}</div></div>
 }

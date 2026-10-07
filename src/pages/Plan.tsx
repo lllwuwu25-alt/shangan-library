@@ -6,6 +6,8 @@ import { useStudyStore } from '../store/useStudyStore'
 import type { DayName, Subject, Task, TimeSlot } from '../types'
 import { Button, Card, DangerButton, EmptyState, GhostButton, Panel, SectionTitle, Select, TextInput } from '../components/ui'
 import { PageHeader } from '../components/Layout'
+import { Modal } from '../components/Modal'
+import { useCompactLayout } from '../lib/useMobileViewport'
 
 type ComposerTarget = { date: string; slot: TimeSlot } | null
 
@@ -37,6 +39,8 @@ export function Plan() {
   const [composerTarget, setComposerTarget] = useState<ComposerTarget>(null)
   const [fullComposerOpen, setFullComposerOpen] = useState(false)
   const [showNextWeek, setShowNextWeek] = useState(false)
+  const [mobileWeekOffset, setMobileWeekOffset] = useState(0)
+  const compact = useCompactLayout()
   const [newSlot, setNewSlot] = useState('')
   const actions = { addTask, updateTask, deleteTask, toggleTask }
 
@@ -62,6 +66,7 @@ export function Plan() {
   }
 
   const openComposer = (date: string, slot = timeSlots[0] ?? defaultTimeSlots[0]) => {
+    setMobileWeekOffset(date >= nextWeek.start ? 1 : 0)
     setSelectedDate(date)
     setExpandedSlotKey(`${date}-${slot}`)
     setComposerTarget({ date, slot })
@@ -72,13 +77,26 @@ export function Plan() {
       <PageHeader title="学习计划" description="按日期和时段查看安排，点击时段展开详情，也可以直接在表内新增任务。" />
 
       <div className="xl:hidden">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="inline-flex rounded-lg bg-slate-100 p-1" aria-label="计划周切换">
+            {[0, 1].map((offset) => <button key={offset} type="button" aria-pressed={mobileWeekOffset === offset} onClick={() => {
+              const date = offset === 0 ? todayDate : nextWeek.start
+              setMobileWeekOffset(offset)
+              setSelectedDate(date)
+              setComposerTarget(null)
+              setExpandedSlotKey(`${date}-${firstSlotWithTasks(tasks.filter((task) => task.date === date), timeSlots)}`)
+            }} className={`min-h-11 rounded-lg px-5 text-sm font-medium ${mobileWeekOffset === offset ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-600'}`}>{offset === 0 ? '本周' : '下周'}</button>)}
+          </div>
+          <DangerButton type="button" onClick={clearCurrentWeekTasks} disabled={currentWeekTasks.length === 0} aria-label="清除本周计划"><Trash2 size={15} /><span>清除本周</span></DangerButton>
+        </div>
         <MobilePlanView
-          tasks={currentWeekTasks}
+          tasks={mobileWeekOffset === 0 ? currentWeekTasks : nextWeekTasks}
+          weekOffset={mobileWeekOffset}
           selectedDate={selectedDate}
           setSelectedDate={setSelectedDate}
           expandedSlotKey={expandedSlotKey}
           setExpandedSlotKey={setExpandedSlotKey}
-          composerTarget={composerTarget}
+          composerTarget={compact ? null : composerTarget}
           setComposerTarget={setComposerTarget}
           openComposer={openComposer}
           subjects={subjects}
@@ -86,7 +104,8 @@ export function Plan() {
           actions={actions}
         />
         <TabletPlanView
-          tasks={currentWeekTasks}
+          tasks={mobileWeekOffset === 0 ? currentWeekTasks : nextWeekTasks}
+          weekOffset={mobileWeekOffset}
           expandedSlotKey={expandedSlotKey}
           setExpandedSlotKey={setExpandedSlotKey}
           composerTarget={composerTarget}
@@ -119,12 +138,12 @@ export function Plan() {
       </div>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="space-y-5">
+        <div className="hidden space-y-5 md:block">
           <TaskList title={`${todayDay} 今日任务`} tasks={todayTasks} deleteTask={deleteTask} toggleTask={toggleTask} />
           <TaskList title={`${tomorrowDay} 明日任务`} tasks={tomorrowTasks} deleteTask={deleteTask} toggleTask={toggleTask} />
         </div>
         <div className="space-y-5">
-          <Card className="xl:hidden">
+          <Card className="hidden md:block xl:hidden">
             <SectionTitle
               title="按日期新增计划"
               caption="选择本周或下周日期。日常新增也可以直接点时段旁边的加号。"
@@ -140,16 +159,31 @@ export function Plan() {
               />
             )}
           </Card>
-          <CountdownCard settings={settings} updateSettings={updateSettings} countdown={countdown} />
-          <TimeSlotManager tasks={tasks} timeSlots={timeSlots} newSlot={newSlot} setNewSlot={setNewSlot} addTimeSlot={addTimeSlot} removeTimeSlot={removeTimeSlot} />
+          <details className="mobile-secondary" open={!compact}>
+            <summary className="md:hidden">考试倒计时 · {countdown === null ? '未设置' : `${countdown} 天`}</summary>
+            <CountdownCard settings={settings} updateSettings={updateSettings} countdown={countdown} />
+          </details>
+          <details className="mobile-secondary" open={!compact}>
+            <summary className="md:hidden">管理学习时段</summary>
+            <TimeSlotManager tasks={tasks} timeSlots={timeSlots} newSlot={newSlot} setNewSlot={setNewSlot} addTimeSlot={addTimeSlot} removeTimeSlot={removeTimeSlot} />
+          </details>
         </div>
       </div>
+      {compact && composerTarget && <Modal title="新增计划" caption="选择日期、时段和科目" onClose={() => setComposerTarget(null)}>
+        <FullTaskComposer key={`${composerTarget.date}-${composerTarget.slot}`} currentWeek={currentWeek} nextWeek={nextWeek} subjects={subjects} timeSlots={timeSlots} addTask={addTask} initialDate={composerTarget.date} initialSlot={composerTarget.slot} onDone={(date, slot) => {
+          setSelectedDate(date)
+          setMobileWeekOffset(date >= nextWeek.start ? 1 : 0)
+          setExpandedSlotKey(`${date}-${slot}`)
+          setComposerTarget(null)
+        }} />
+      </Modal>}
     </>
   )
 }
 
 function MobilePlanView({
   tasks,
+  weekOffset,
   selectedDate,
   setSelectedDate,
   expandedSlotKey,
@@ -162,6 +196,7 @@ function MobilePlanView({
   actions,
 }: {
   tasks: Task[]
+  weekOffset: number
   selectedDate: string
   setSelectedDate: (date: string) => void
   expandedSlotKey: string
@@ -180,7 +215,7 @@ function MobilePlanView({
     <Card className="p-3 md:hidden">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-slate-950">本周计划</h2>
+          <h2 className="text-base font-semibold text-slate-950">{weekOffset === 0 ? '本周计划' : '下周计划'}</h2>
           <p className="mt-0.5 truncate text-xs text-slate-500">{selectedDate} · {dayNameFromIso(selectedDate)} · {selectedTasks.length} 个任务</p>
         </div>
         <button
@@ -193,6 +228,7 @@ function MobilePlanView({
         </button>
       </div>
       <DayStrip
+        weekOffset={weekOffset}
         tasks={tasks}
         selectedDate={selectedDate}
         onSelect={(date) => {
@@ -226,6 +262,7 @@ function MobilePlanView({
 
 function TabletPlanView({
   tasks,
+  weekOffset,
   expandedSlotKey,
   setExpandedSlotKey,
   composerTarget,
@@ -236,6 +273,7 @@ function TabletPlanView({
   actions,
 }: {
   tasks: Task[]
+  weekOffset: number
   expandedSlotKey: string
   setExpandedSlotKey: (key: string) => void
   composerTarget: ComposerTarget
@@ -248,7 +286,7 @@ function TabletPlanView({
   return (
     <div className="hidden md:grid md:grid-cols-2 md:gap-4 xl:hidden">
       {dayNames.map((day) => {
-        const date = isoForWeekDay(day)
+        const date = isoForWeekDay(day, weekOffset)
         const dayTasks = tasks.filter((task) => task.date === date)
         return (
           <DayPlanCard
@@ -377,12 +415,12 @@ function DesktopPlanView({
   )
 }
 
-function DayStrip({ tasks, selectedDate, onSelect }: { tasks: Task[]; selectedDate: string; onSelect: (date: string) => void }) {
+function DayStrip({ tasks, selectedDate, onSelect, weekOffset = 0 }: { tasks: Task[]; selectedDate: string; onSelect: (date: string) => void; weekOffset?: number }) {
   const today = todayIso()
   return (
     <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
       {dayNames.map((day) => {
-        const date = isoForWeekDay(day)
+        const date = isoForWeekDay(day, weekOffset)
         const dayTasks = tasks.filter((task) => task.date === date)
         const active = selectedDate === date
         return (
@@ -390,6 +428,8 @@ function DayStrip({ tasks, selectedDate, onSelect }: { tasks: Task[]; selectedDa
             key={date}
             type="button"
             onClick={() => onSelect(date)}
+            aria-label={`${day} ${date} ${dayTasks.length} 项计划`}
+            aria-pressed={active}
             className={`min-w-0 rounded-xl px-2.5 py-2 text-left ring-1 transition ${active ? 'bg-blue-600 text-white ring-blue-600 shadow-sm' : 'bg-slate-50 text-slate-700 ring-slate-200'}`}
           >
             <span className="block text-xs font-medium">{date === today ? '今天' : day}</span>
@@ -664,11 +704,11 @@ function CompactTaskRow({ task, subjects, actions }: { task: Task; subjects: Sub
   )
 }
 
-function FullTaskComposer({ currentWeek, nextWeek, subjects, timeSlots, addTask }: { currentWeek: { start: string; end: string }; nextWeek: { start: string; end: string }; subjects: Subject[]; timeSlots: TimeSlot[]; addTask: PlanActions['addTask'] }) {
+function FullTaskComposer({ currentWeek, nextWeek, subjects, timeSlots, addTask, initialDate, initialSlot, onDone }: { currentWeek: { start: string; end: string }; nextWeek: { start: string; end: string }; subjects: Subject[]; timeSlots: TimeSlot[]; addTask: PlanActions['addTask']; initialDate?: string; initialSlot?: TimeSlot; onDone?: (date: string, slot: TimeSlot) => void }) {
   const [taskTitle, setTaskTitle] = useState('')
   const [taskSubject, setTaskSubject] = useState<Subject>(subjects[0] ?? defaultSubjects[0])
-  const [taskDate, setTaskDate] = useState(todayIso())
-  const [taskSlot, setTaskSlot] = useState<TimeSlot>(timeSlots[0] ?? defaultTimeSlots[0])
+  const [taskDate, setTaskDate] = useState(initialDate ?? todayIso())
+  const [taskSlot, setTaskSlot] = useState<TimeSlot>(initialSlot ?? timeSlots[0] ?? defaultTimeSlots[0])
   const [taskMinutes, setTaskMinutes] = useState(60)
   const safeTaskSubject = subjects.includes(taskSubject) ? taskSubject : subjects[0] ?? defaultSubjects[0]
   const safeTaskSlot = timeSlots.includes(taskSlot) ? taskSlot : timeSlots[0] ?? defaultTimeSlots[0]
@@ -686,10 +726,11 @@ function FullTaskComposer({ currentWeek, nextWeek, subjects, timeSlots, addTask 
       status: 'todo',
     })
     setTaskTitle('')
+    onDone?.(taskDate, safeTaskSlot)
   }
 
   return (
-    <div className="grid gap-3">
+    <form className="grid gap-3" onSubmit={(event) => { event.preventDefault(); createTask() }}>
       <label className="grid min-w-0 gap-1.5 text-xs font-medium text-slate-700">
         任务名称
         <TextInput placeholder="例如：完成真题阅读" value={taskTitle} onChange={(event) => setTaskTitle(event.target.value)} />
@@ -713,8 +754,8 @@ function FullTaskComposer({ currentWeek, nextWeek, subjects, timeSlots, addTask 
       <Panel className="bg-blue-50 text-blue-800 ring-blue-100">
         <p className="break-words text-xs leading-5">将写入 <b>{taskDate}</b> · <b>{selectedTaskDay}</b> · <b>{safeTaskSlot}</b>。</p>
       </Panel>
-      <Button onClick={createTask}><Plus size={16} />新增任务</Button>
-    </div>
+      <div className="flex gap-2"><Button type="submit" className="w-full" disabled={!taskTitle.trim() || !taskDate || taskDate < currentWeek.start || taskDate > nextWeek.end}><Plus size={16} />加入计划</Button></div>
+    </form>
   )
 }
 

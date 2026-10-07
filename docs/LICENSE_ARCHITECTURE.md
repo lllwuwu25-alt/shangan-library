@@ -8,11 +8,11 @@
 
 系统分为三个互相隔离的部分：
 
-1. 客户桌面应用只包含 Ed25519 公钥和验签代码，不包含签名能力。
+1. 客户桌面与安卓应用只包含 Ed25519 公钥和验签代码，不包含签名能力。安卓通过 JNI 直接编译复用桌面验签、公钥和存储源码，沿用相同 `SL1` 授权码。
 2. 开发者签发工具位于 `tools/license-issuer/`，私钥和签发记录只保存在该工具的本机配置目录。
-3. GitHub Pages 是演示构建，显式使用 `VITE_DEMO_MODE=true`；Tauri 桌面运行时始终优先执行 Rust 授权 Gate，因此此开关不能绕过桌面授权。
+3. GitHub Pages 是演示构建，显式使用 `VITE_DEMO_MODE=true`；Tauri 桌面与 Capacitor 安卓运行时始终优先执行 Rust 授权 Gate，因此此开关不能绕过原生应用授权。
 
-客户安装包的构建和上传路径只能位于 `src-tauri/target/`。签发工具、私钥备份和签发记录不得进入客户安装包。
+桌面客户安装包的构建和上传路径位于 `src-tauri/target/`；安卓 APK 位于 `android/app/build/outputs/apk/`。签发工具、私钥备份和签发记录不得进入客户安装包。
 
 ## 授权协议
 
@@ -50,6 +50,9 @@ Payload 使用 schema 1，并固定以下商业字段：
 - macOS: `~/Library/Application Support/com.shangan.library/license.dat`
 - Windows: `%APPDATA%\com.shangan.library\license.dat`
 - Linux: `~/.config/com.shangan.library/license.dat`
+- Android: 应用私有 `getFilesDir()/license.dat`，路径由原生桥接提供，不由网页指定。
+
+安卓接入、编译要求和验收说明见 `docs/ANDROID_LICENSE.md`。
 
 签发工具数据位于其独立应用配置目录的 `license-issuer-data/`：
 

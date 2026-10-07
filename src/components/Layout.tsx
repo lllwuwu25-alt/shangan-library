@@ -1,5 +1,7 @@
-import { BookOpen, CalendarDays, Home, Library, MessageCircle, Settings, ShieldCheck, Timer, TriangleAlert } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { BookOpen, CalendarDays, Home, Library, MessageCircle, MoreHorizontal, Settings, ShieldCheck, Timer, TriangleAlert } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { Modal } from './Modal'
+import { useMobileViewport } from '../lib/useMobileViewport'
 
 const navItems = [
   { path: '/dashboard', label: '首页总览', icon: Home },
@@ -29,6 +31,8 @@ const originFromButton = (button: HTMLButtonElement) => {
 }
 
 export function Layout({ path, onNavigate, children }: { path: string; onNavigate: (path: string, origin?: NavigationOrigin) => void; children: ReactNode }) {
+  useMobileViewport()
+  const [moreOpen, setMoreOpen] = useState(false)
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <aside className="fixed inset-y-0 left-0 hidden w-72 border-r border-slate-200 bg-white/95 px-4 py-5 shadow-soft lg:flex lg:flex-col">
@@ -67,10 +71,10 @@ export function Layout({ path, onNavigate, children }: { path: string; onNavigat
         </div>
       </aside>
       <div className="lg:pl-72">
-        <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-4 py-2.5 backdrop-blur lg:hidden">
+        <header className="mobile-header sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-4 py-2.5 lg:hidden">
           <div className="flex items-center justify-between">
             <div className="min-w-0">
-              <p className="truncate text-base font-semibold text-slate-950">{pageTitle(path)}</p>
+              <h1 className="truncate text-base font-semibold text-slate-950">{pageTitle(path)}</h1>
               <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
                 <span className="size-1.5 rounded-full bg-emerald-500" />
                 本地优先
@@ -78,16 +82,17 @@ export function Layout({ path, onNavigate, children }: { path: string; onNavigat
             </div>
             <button
               type="button"
-              onClick={(event) => onNavigate('/settings', originFromButton(event.currentTarget))}
-              aria-label="打开设置"
-              className={`flex size-10 items-center justify-center rounded-full transition focus:outline-none focus:ring-2 focus:ring-blue-200 ${path === '/settings' ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+              onClick={() => setMoreOpen(true)}
+              aria-label="更多入口"
+              aria-expanded={moreOpen}
+              className={`flex size-11 items-center justify-center rounded-xl transition focus:outline-none focus:ring-2 focus:ring-blue-200 ${path === '/settings' || path === '/contact' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
             >
-              <Settings size={18} />
+              <MoreHorizontal size={20} />
             </button>
           </div>
         </header>
-        <main className="mx-auto max-w-7xl px-3 pb-20 pt-4 sm:px-5 md:px-6 lg:px-8 lg:py-8">{children}</main>
-        <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 shadow-[0_-6px_18px_rgba(15,23,42,0.05)] backdrop-blur lg:hidden">
+        <main className="app-main mx-auto max-w-7xl px-3 pb-20 pt-4 sm:px-5 md:px-6 lg:px-8 lg:py-8">{children}</main>
+        <nav aria-label="主导航" className="mobile-nav fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white px-3 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 lg:hidden">
           <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
             {mobileNavItems.map((item) => {
               const Icon = item.icon
@@ -108,13 +113,21 @@ export function Layout({ path, onNavigate, children }: { path: string; onNavigat
           </div>
         </nav>
       </div>
+      {moreOpen && <Modal title="更多" caption="上岸资料库 · 本地个人学习系统" onClose={() => setMoreOpen(false)}>
+        <div className="grid gap-2">
+          {navItems.filter((item) => item.path === '/settings' || item.path === '/contact').map((item) => {
+            const Icon = item.icon
+            return <button key={item.path} type="button" onClick={(event) => { setMoreOpen(false); onNavigate(item.path, originFromButton(event.currentTarget)) }} className="flex min-h-14 items-center gap-3 rounded-lg bg-slate-50 px-4 text-left text-base font-medium text-slate-800"><Icon size={20} className="text-blue-600" />{item.label}</button>
+          })}
+        </div>
+      </Modal>}
     </div>
   )
 }
 
 export function PageHeader({ title, description }: { title: string; description: string }) {
   return (
-    <div className="mb-4 flex flex-col gap-2 rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200/70 md:mb-6 md:flex-row md:items-start md:justify-between md:rounded-2xl md:px-5 md:py-4 md:shadow-card">
+    <div className="mb-4 hidden flex-col gap-2 rounded-xl bg-white px-4 py-3 ring-1 ring-slate-200/70 md:mb-6 md:flex-row md:items-start md:justify-between md:rounded-2xl md:px-5 md:py-4 md:shadow-card lg:flex">
       <div className="min-w-0 flex-1">
         <h1 className="text-lg font-semibold tracking-tight text-slate-950 md:text-2xl">{title}</h1>
         <p className="mt-1 max-w-3xl text-wrap text-xs leading-5 text-slate-600 md:text-sm md:leading-6">{description}</p>
