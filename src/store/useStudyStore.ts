@@ -2,12 +2,21 @@ import { create } from 'zustand'
 import { clearData, loadData, normalizeAppData, saveData } from '../lib/storage'
 import { initialData } from '../data/initialData'
 import { isoForCurrentWeekDay } from '../lib/date'
+import { normalizeReviewData, type WeeklyReviewData, type WeeklyReport, type ReviewDecision } from '../features/weekly-review/model'
 import type { AppData, Mistake, PomodoroSession, ResourceItem, Settings, Task, WeeklyPlanItem } from '../types'
 
-const uid = (prefix: string) => `${prefix}-${crypto.randomUUID?.() ?? Date.now().toString(36)}`
+const uid = (prefix: string) => {
+  const id = crypto.randomUUID?.() ?? Array.from(crypto.getRandomValues(new Uint32Array(4)), value => value.toString(16).padStart(8, '0')).join('')
+  return `${prefix}-${id}`
+}
 
 type StudyStore = AppData & {
+  updateWeeklyReview: (patch: Partial<Pick<WeeklyReviewData, 'enabled' | 'weekday'>>) => void
+  decideWeeklyReview: (weekStart: string, action: ReviewDecision['action']) => void
+  saveWeeklyReport: (report: WeeklyReport) => void
+  deleteWeeklyReport: (id: string) => void
   addTask: (task: Omit<Task, 'id' | 'date'> & Partial<Pick<Task, 'date'>>) => void
+  addTasks: (tasks: Omit<Task, 'id'>[]) => void
   updateTask: (id: string, patch: Partial<Task>) => void
   deleteTask: (id: string) => void
   deleteTasksByDateRange: (startIso: string, endIso: string) => void
@@ -37,9 +46,30 @@ const persist = (state: AppData) => saveData(state)
 
 export const useStudyStore = create<StudyStore>((set, get) => ({
   ...loadData(),
+  updateWeeklyReview: (patch) => set(state => {
+    const next = { ...state, weeklyReview: { ...normalizeReviewData(state.weeklyReview), ...patch } }; persist(next); return next
+  }),
+  decideWeeklyReview: (weekStart, action) => set(state => {
+    const data = normalizeReviewData(state.weeklyReview)
+    const next = { ...state, weeklyReview: { ...data, decisions: { ...data.decisions, [weekStart]: { action, at: new Date().toISOString() } } } }; persist(next); return next
+  }),
+  saveWeeklyReport: (report) => set(state => {
+    const data = normalizeReviewData(state.weeklyReview)
+    const next = { ...state, weeklyReview: normalizeReviewData({ ...data, decisions: { ...data.decisions, [report.weekStart]: { action: 'reviewed', at: report.generatedAt } }, reports: [report, ...data.reports.filter(r => r.weekStart !== report.weekStart)] }) }; persist(next); return next
+  }),
+  deleteWeeklyReport: (id) => set(state => {
+    const data = normalizeReviewData(state.weeklyReview)
+    const next = { ...state, weeklyReview: { ...data, reports: data.reports.filter(r => r.id !== id) } }; persist(next); return next
+  }),
   addTask: (task) => set((state) => {
     const nextTask = { ...task, id: uid('task'), date: task.date ?? isoForCurrentWeekDay(task.day) }
     const next = { ...state, tasks: [nextTask, ...state.tasks] }
+    persist(next)
+    return next
+  }),
+  addTasks: (tasks) => set((state) => {
+    if (!tasks.length) return state
+    const next = { ...state, tasks: [...tasks.map(task => ({ ...task, id: uid('task') })), ...state.tasks] }
     persist(next)
     return next
   }),
@@ -141,14 +171,16 @@ export const useStudyStore = create<StudyStore>((set, get) => ({
     persist(next)
     return next
   }),
-  importData: (data) => set(() => {
+  importData: (data) => {
     const normalized = normalizeAppData(data)
     persist(normalized)
-    return normalized
-  }),
-  resetData: () => set(() => {
+    set(normalized)
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('shangan-study-replaced'))
+  },
+  resetData: () => {
     clearData()
     persist(initialData)
-    return initialData
-  }),
+    set(initialData)
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event('shangan-study-replaced'))
+  },
 }))

@@ -13,8 +13,10 @@ import { startPageTransition } from './lib/pageTransition'
 import { LicenseGate } from './features/license/LicenseGate'
 import { StartupIntro } from './components/StartupIntro'
 import { useAndroidBack } from './lib/useAndroidBack'
+import { WeeklyReviewController } from './features/weekly-review/WeeklyReview'
+import { StudyAssistant } from './features/ai/StudyAssistant'
 
-const routes = ['/dashboard', '/plan', '/pomodoro', '/resources', '/mistakes', '/settings', '/contact']
+const routes = ['/dashboard', '/plan', '/pomodoro', '/resources', '/mistakes', '/ai', '/settings', '/contact']
 const basePath = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL.slice(0, -1) : import.meta.env.BASE_URL
 
 type NavigationOrigin = { x: number; y: number }
@@ -89,7 +91,7 @@ function App() {
       <StartupIntro />
       <LicenseGate>
         <Layout path={activePath} onNavigate={navigate}>
-          <div key={activePath} className="route-content">
+          {activePath !== '/ai' && <div key={activePath} className="route-content">
             {activePath === '/dashboard' && <Dashboard go={navigate} />}
             {activePath === '/plan' && <Plan />}
             {activePath === '/pomodoro' && <Pomodoro />}
@@ -97,8 +99,10 @@ function App() {
             {activePath === '/mistakes' && <Mistakes />}
             {activePath === '/settings' && <Settings />}
             {activePath === '/contact' && <Contact />}
-          </div>
+          </div>}
+          <StudyAssistant active={activePath === '/ai'} go={navigate} />
         </Layout>
+        <WeeklyReviewController />
       </LicenseGate>
     </>
   )

@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
-import { checkRelease } from './check-license-release.mjs'
+import { checkRelease, EXPECTED_VERSION } from './check-license-release.mjs'
 
 test('accepts a version-aligned public-verification-only customer build', () => {
   const root = releaseFixture()
@@ -43,9 +43,9 @@ function releaseFixture(options = {}) {
   mkdirSync(join(root, 'src-tauri/src/license'), { recursive: true })
   mkdirSync(join(root, 'src-tauri/src'), { recursive: true })
   mkdirSync(join(root, '.github/workflows'), { recursive: true })
-  writeFileSync(join(root, 'package.json'), JSON.stringify({ version: options.packageVersion ?? '0.7.1' }))
-  writeFileSync(join(root, 'src-tauri/tauri.conf.json'), JSON.stringify({ version: '0.7.1' }))
-  writeFileSync(join(root, 'src-tauri/Cargo.toml'), '[package]\nname = "app"\nversion = "0.7.1"\n')
+  writeFileSync(join(root, 'package.json'), JSON.stringify({ version: options.packageVersion ?? EXPECTED_VERSION }))
+  writeFileSync(join(root, 'src-tauri/tauri.conf.json'), JSON.stringify({ version: EXPECTED_VERSION }))
+  writeFileSync(join(root, 'src-tauri/Cargo.toml'), `[package]\nname = "app"\nversion = "${EXPECTED_VERSION}"\n`)
   writeFileSync(
     join(root, 'src-tauri/src/license/keys.rs'),
     options.keys ?? 'pub const ACTIVE_PUBLIC_KEYS: &[(&str, [u8; 32])] = &[("primary-2026", [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])];',

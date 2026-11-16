@@ -1,7 +1,7 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { ArrowLeft, ChevronRight, ExternalLink, FilePlus2, Grid2X2, Heart, LayoutList, MoreHorizontal, Plus, Search, Upload } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { ArrowLeft, Boxes, ChevronRight, ExternalLink, FilePlus2, Grid2X2, Heart, LayoutList, MoreHorizontal, Plus, Search, Upload } from 'lucide-react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { FilePicker } from '../../../components/FilePicker'
 import { Modal } from '../../../components/Modal'
 import { useCompactLayout } from '../../../lib/useMobileViewport'
@@ -11,6 +11,9 @@ import { getBreadcrumb, getChildren } from '../utils/tree'
 import type { KnowledgeNode, KnowledgeViewMode, KnowledgeVirtualView, ResourceFile } from '../types/knowledge'
 import { NodeIcon } from './NodeIcon'
 import { nodeTypeLabels, statusLabels } from './nodePresentation'
+import { resolveWorkspaceMode } from '../utils/mindMapState'
+
+const MindMap = lazy(() => import('./MindMap').then((module) => ({ default: module.MindMap })))
 
 type Props = {
   index: TreeIndex
@@ -45,6 +48,7 @@ export function NodeWorkspace(props: Props) {
   const compact = useCompactLayout()
   const { selectedNode, virtualView } = props
   const isVirtual = virtualView !== 'tree'
+  const mode = resolveWorkspaceMode(props.viewMode, virtualView)
   const isContainer = containerTypes.has(selectedNode.type)
   const allActive = useMemo(() => props.nodes.filter((node) => !node.archived && node.type !== 'root'), [props.nodes])
   const content = useMemo(() => {
@@ -79,21 +83,22 @@ export function NodeWorkspace(props: Props) {
               <button type="button" onClick={() => props.onCreate(selectedNode.id)} className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 text-sm font-medium text-white transition hover:bg-blue-700 sm:h-9 sm:flex-none"><Plus size={15} />新建</button>
               <FilePicker className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 sm:h-9 sm:flex-none" onFiles={(files) => props.onUpload(selectedNode.id, files)}><Upload size={15} /><span>导入资料</span></FilePicker>
             </>}
-            <div className="hidden rounded-lg border border-slate-200 bg-white p-0.5 sm:flex">
-              <button type="button" onClick={() => props.onViewMode('grid')} className={`flex size-8 items-center justify-center rounded-md ${props.viewMode === 'grid' ? 'bg-slate-100 text-slate-950' : 'text-slate-400 hover:text-slate-700'}`} aria-label="网格视图"><Grid2X2 size={15} /></button>
-              <button type="button" onClick={() => props.onViewMode('list')} className={`flex size-8 items-center justify-center rounded-md ${props.viewMode === 'list' ? 'bg-slate-100 text-slate-950' : 'text-slate-400 hover:text-slate-700'}`} aria-label="列表视图"><LayoutList size={16} /></button>
+            <div className="flex shrink-0 rounded-lg border border-slate-200 bg-white p-0.5" role="group" aria-label="资料视图">
+              <button type="button" onClick={() => props.onViewMode('grid')} className={`hidden size-8 items-center justify-center rounded-md sm:flex ${mode === 'grid' ? 'bg-slate-100 text-slate-950' : 'text-slate-400 hover:text-slate-700'}`} aria-pressed={mode === 'grid'} title="网格视图" aria-label="网格视图"><Grid2X2 size={15} /></button>
+              <button type="button" onClick={() => props.onViewMode('list')} className={`flex size-8 items-center justify-center rounded-md ${mode === 'list' ? 'bg-slate-100 text-slate-950' : 'text-slate-400 hover:text-slate-700'}`} aria-pressed={mode === 'list'} title="列表视图" aria-label="列表视图"><LayoutList size={16} /></button>
+              <button type="button" disabled={isVirtual} onClick={() => props.onViewMode('map')} className={`flex size-8 items-center justify-center rounded-md disabled:cursor-not-allowed disabled:opacity-40 ${mode === 'map' ? 'bg-slate-100 text-slate-950' : 'text-slate-400 hover:text-slate-700'}`} aria-pressed={mode === 'map'} title={isVirtual ? '请在知识树目录中查看导图' : '导图视图'} aria-label="导图视图"><Boxes size={16} /></button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-5" aria-label="资料列表">
+      {mode === 'map' ? <Suspense fallback={<div className="grid min-h-0 flex-1 place-items-center text-sm text-slate-500" role="status">导图加载中...</div>}><MindMap key={selectedNode.id} index={props.index} rootId={selectedNode.id} files={props.files} onSelect={props.onSelect} onPreview={props.onPreview} /></Suspense> : <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-5" aria-label="资料列表">
         {!isVirtual && !isContainer ? <NodeDetails {...props} breadcrumb={breadcrumb} /> : content.length === 0 ? <WorkspaceEmpty isVirtual={isVirtual} isRoot={selectedNode.type === 'root'} onCreate={() => props.onCreate(selectedNode.id)} onUpload={(files) => props.onUpload(selectedNode.id, files)} /> : (
-          <div className={!compact && props.viewMode === 'grid' ? 'grid gap-3 sm:grid-cols-2 2xl:grid-cols-3' : 'space-y-2'}>
-            {content.map((node) => <NodeCard key={node.id} node={node} file={node.metadata?.fileId ? props.files.find((file) => file.id === node.metadata?.fileId) : undefined} tags={props.nodeTags.get(node.id) ?? []} mode={compact ? 'list' : props.viewMode} compact={compact} onSelect={props.onSelect} onPreview={props.onPreview} onFavorite={props.onFavorite} onRename={props.onRename} onMove={props.onMove} onDelete={props.onDelete} />)}
+          <div className={!compact && mode === 'grid' ? 'grid gap-3 sm:grid-cols-2 2xl:grid-cols-3' : 'space-y-2'}>
+            {content.map((node) => <NodeCard key={node.id} node={node} file={node.metadata?.fileId ? props.files.find((file) => file.id === node.metadata?.fileId) : undefined} tags={props.nodeTags.get(node.id) ?? []} mode={compact ? 'list' : mode} compact={compact} onSelect={props.onSelect} onPreview={props.onPreview} onFavorite={props.onFavorite} onRename={props.onRename} onMove={props.onMove} onDelete={props.onDelete} />)}
           </div>
         )}
-      </div>
+      </div>}
     </section>
   )
 }

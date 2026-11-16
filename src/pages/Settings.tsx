@@ -17,6 +17,10 @@ import { LicenseStatusPanel } from '../features/license/LicenseStatusPanel'
 import { createBackupDocument, parseBackupDocument } from '../lib/backup'
 import { pickDesktopBackupText, saveBackupText } from '../lib/backupFile'
 import { isDesktopRuntime } from '../lib/desktopFiles'
+import { AISettings } from '../features/ai/AISettings'
+import { WeeklyReviewSettings } from '../features/weekly-review/WeeklyReview'
+import { defaultAIConfig } from '../features/ai/config'
+import { useAIStore } from '../features/ai/aiStore'
 
 export function Settings() {
   const store = useStudyStore()
@@ -25,11 +29,13 @@ export function Settings() {
   const [message, setMessage] = useState('')
   const [newSubject, setNewSubject] = useState('')
   const [isProcessingBackup, setIsProcessingBackup] = useState(false)
+  const [aiResetVersion, setAIResetVersion] = useState(0)
   const initializeKnowledge = knowledge.initialize
 
   useEffect(() => { void initializeKnowledge(store.resources) }, [initializeKnowledge, store.resources])
 
   const data: AppData = {
+    weeklyReview: store.weeklyReview,
     tasks: store.tasks,
     weeklyPlan: store.weeklyPlan,
     resources: store.resources,
@@ -160,11 +166,15 @@ export function Settings() {
   }
 
   const resetAllData = async () => {
-    if (!confirm('确认清空所有本地数据和附件？此操作无法撤销，建议先立即备份。')) return
-    await clearAttachmentBlobs()
-    await knowledge.clearKnowledge()
-    store.resetData()
-    setMessage('已清空学习数据和本地附件，系统已恢复为空白初始状态。')
+    if (!confirm('确认清空所有本地学习数据、附件和 AI 配置（含密钥）？此操作无法撤销，建议先立即备份。')) return
+    try {
+      useAIStore.getState().setConfig({ ...defaultAIConfig })
+      setAIResetVersion((version) => version + 1)
+      await clearAttachmentBlobs()
+      await knowledge.clearKnowledge()
+      store.resetData()
+      setMessage('已清空学习数据、附件和 AI 配置，系统已恢复为空白初始状态。')
+    } catch { setMessage('未能完成全部清理，请检查本地存储后重试。') }
   }
 
   return (
@@ -173,6 +183,8 @@ export function Settings() {
       <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-5">
           <LicenseStatusPanel />
+          <AISettings key={aiResetVersion} />
+          <WeeklyReviewSettings />
 
           <Card>
             <SectionTitle title="数据安全中心" caption="一键备份会同时保存计划、资料、错题、番茄钟记录和附件正文。" />
@@ -339,7 +351,7 @@ export function Settings() {
         <SectionTitle title="本地运行说明" />
         <div className="grid gap-3 text-sm leading-6 text-slate-600 md:grid-cols-3">
           {[
-            '本系统不包含登录、云同步或 AI 功能，所有学习数据仅保存在当前设备的本地存储中。',
+            '学习数据保存在当前设备，不包含登录或云同步。AI 默认关闭；主动使用 AI 时，相应内容会发送到你配置的服务。',
             '如果更换设备、清理站点数据或使用隐私模式，数据可能不可用。建议定期点击「立即备份」。',
             '本系统可以在当前设备上独立使用，学习计划、资料索引和错题记录都会保存在本地。',
           ].map((text) => (

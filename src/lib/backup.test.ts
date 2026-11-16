@@ -5,6 +5,14 @@ import { createBackupDocument, parseBackupDocument } from './backup.ts'
 import type { AppData } from '../types.ts'
 import { emptyKnowledgeData } from '../features/knowledge-tree/types/knowledge.ts'
 import type { KnowledgeBackupBundle } from '../features/knowledge-tree/services/backup.ts'
+import { normalizeReviewData, summarizeWeek } from '../features/weekly-review/model.ts'
+
+test('weekly reports and reminder preferences round-trip with complete backups', () => {
+  const snapshot = summarizeWeek([], [], { start: '2026-10-26', end: '2026-11-01' })
+  const weeklyReview = normalizeReviewData({ enabled: true, weekday: 3, decisions: { '2026-10-26': { action: 'skip', at: '2026-11-04T00:00:00Z' } }, reports: [{ id: 'week-1', weekStart: snapshot.start, weekEnd: snapshot.end, generatedAt: '2026-11-04T00:00:00Z', snapshot, analysis: '暂无记录', providerHost: 'api.deepseek.com', model: 'deepseek-flash' }] })
+  const document = createBackupDocument({ ...appData, weeklyReview }, undefined, '2026-11-04T00:00:00Z')
+  assert.deepEqual(normalizeReviewData(parseBackupDocument(JSON.stringify(document)).appData.weeklyReview), weeklyReview)
+})
 
 const appData: AppData = {
   tasks: [{ id: 'task-1', title: '背单词', subject: '英语', minutes: 30, day: '周一', slot: '早晨', date: '2026-09-14', status: 'todo' }],

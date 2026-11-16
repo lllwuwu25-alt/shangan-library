@@ -2,6 +2,7 @@ import type { AppData } from '../types'
 import { defaultSubjects, defaultTimeSlots } from '../constants'
 
 export const initialData: AppData = {
+  weeklyReview: { enabled: false, weekday: 1, decisions: {}, reports: [] },
   settings: {
     examName: '',
     examDate: '',

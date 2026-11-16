@@ -1,3 +1,4 @@
+import type { WeeklyReviewData } from './features/weekly-review/model'
 export type Subject = string
 export type ResourceCategory = Subject | '真题' | '笔记' | '讲义' | '网课' | '模板' | '错题资料' | '高频考点' | '作文素材' | '面试资料' | '作文模板'
 export type TaskStatus = 'todo' | 'done'
@@ -79,6 +80,7 @@ export type PomodoroSession = {
 }
 
 export type AppData = {
+  weeklyReview?: WeeklyReviewData
   tasks: Task[]
   weeklyPlan: WeeklyPlanItem[]
   resources: ResourceItem[]

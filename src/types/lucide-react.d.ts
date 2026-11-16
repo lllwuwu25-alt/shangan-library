@@ -64,6 +64,7 @@ declare module 'lucide-react' {
   export const Search: LucideIcon
   export const Settings: LucideIcon
   export const ShieldCheck: LucideIcon
+  export const Send: LucideIcon
   export const Sparkles: LucideIcon
   export const Tag: LucideIcon
   export const Sun: LucideIcon

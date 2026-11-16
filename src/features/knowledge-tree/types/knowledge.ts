@@ -1,7 +1,7 @@
 export type KnowledgeNodeType = 'root' | 'folder' | 'subject' | 'chapter' | 'topic' | 'document' | 'note' | 'image' | 'video' | 'link' | 'mistake' | 'collection'
 export type LearningStatus = 'unlearned' | 'learning' | 'completed' | 'review' | 'mastered'
 export type NodeRelationType = 'related' | 'reference' | 'derived' | 'mistake' | 'note' | 'course'
-export type KnowledgeViewMode = 'grid' | 'list'
+export type KnowledgeViewMode = 'grid' | 'list' | 'map'
 export type KnowledgeVirtualView = 'tree' | 'recent' | 'favorite' | LearningStatus
 
 export type KnowledgeMetadata = {

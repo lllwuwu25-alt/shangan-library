@@ -1,5 +1,6 @@
 import { initialData } from '../data/initialData'
 import { defaultSubjects, defaultTimeSlots } from '../constants'
+import { normalizeReviewData } from '../features/weekly-review/model'
 import { dayNameFromIso, isoForCurrentWeekDay, todayIso } from './date'
 import type { AppData, DayName, Mistake, PomodoroSession, ResourceItem, Settings, Subject, Task, TimeSlot, WeeklyPlanItem } from '../types'
 
@@ -80,6 +81,7 @@ export const normalizeAppData = (raw: Partial<AppData>): AppData => {
 
   return {
     tasks: [...normalizedTasks, ...convertedPlanTasks],
+    weeklyReview: normalizeReviewData(raw.weeklyReview),
     weeklyPlan: [],
     resources,
     mistakes,

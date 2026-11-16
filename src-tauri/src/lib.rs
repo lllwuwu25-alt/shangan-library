@@ -1,4 +1,5 @@
 pub mod license;
+mod ai;
 
 use tauri::Manager;
 
@@ -26,6 +27,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            ai::ai_chat,
             license::commands::activate_license,
             license::commands::get_license_status,
             license::commands::deactivate_license,

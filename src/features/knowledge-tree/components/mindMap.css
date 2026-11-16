@@ -1,0 +1,50 @@
+.knowledge-map {
+  --map-surface: #fff;
+  --map-background: #f8fafc;
+  --map-ink: #0f172a;
+  --map-muted: #475569;
+  --map-border: #cbd5e1;
+  --map-accent: #2563eb;
+  --map-edge: #94a3b8;
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--map-background);
+}
+[data-theme="dark"] .knowledge-map {
+  --map-surface: #17212b;
+  --map-background: #101820;
+  --map-ink: #f1f5f9;
+  --map-muted: #b8c6d6;
+  --map-border: #475569;
+  --map-accent: #60a5fa;
+  --map-edge: #64748b;
+}
+.knowledge-map .react-flow { background: var(--map-background); }
+.knowledge-map .react-flow__node { border-radius: 8px; }
+.knowledge-map-node { height: 100%; display: flex; flex-direction: column; border: 1px solid var(--map-border); border-radius: 8px; color: var(--map-ink); background: var(--map-surface); box-shadow: 0 2px 5px #00000008; }
+.knowledge-map-node--selected { border-color: var(--map-accent); box-shadow: 0 0 0 1px var(--map-accent); }
+.knowledge-map-label { padding: 9px 12px 0; text-align: left; flex: 1; min-height: 0; overflow: hidden; cursor: pointer; color: var(--map-ink); }
+.knowledge-map-kind { display: flex; align-items: center; gap: 6px; color: var(--map-muted); font-size: 11px; line-height: 18px; }
+.knowledge-map-title { display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; margin-top: 4px; font-size: 14px; line-height: 21px; font-weight: 500; }
+.knowledge-map-actions { display: flex; align-items: center; justify-content: space-between; height: 26px; flex-shrink: 0; padding: 0 5px; }
+.knowledge-map-actions button { display: flex; align-items: center; justify-content: center; gap: 3px; height: 24px; min-width: 28px; color: var(--map-muted); font-size: 11px; border-radius: 4px; }
+.knowledge-map-actions .knowledge-map-open { margin-left: auto; }
+.knowledge-map button:hover { background: color-mix(in srgb, var(--map-accent) 10%, transparent); }
+.knowledge-map button:focus-visible { outline: 2px solid var(--map-accent); outline-offset: -2px; }
+.knowledge-map .react-flow__handle { width: 5px; height: 5px; background: var(--map-edge); border: 0; pointer-events: none; }
+.knowledge-map-summary, .knowledge-map-controls { color: var(--map-muted); background: var(--map-surface); border: 1px solid var(--map-border); border-radius: 6px; font-size: 12px; }
+.knowledge-map-summary { padding: 6px 10px; }
+.knowledge-map-controls { display: flex; align-items: center; padding: 3px; }
+.knowledge-map-controls button { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 4px; color: var(--map-muted); }
+.knowledge-map-controls output { width: 48px; text-align: center; font-variant-numeric: tabular-nums; }
+.knowledge-map .react-flow__attribution { background: var(--map-surface); color: var(--map-muted); }
+@media (max-width: 639px) {
+  .knowledge-map-actions { height: 46px; }
+  .knowledge-map .knowledge-map-label { min-height: 0; }
+  .knowledge-map .knowledge-map-actions button { min-height: 44px; min-width: 44px; }
+  .knowledge-map .knowledge-map-controls button { width: 44px; height: 44px; }
+}
